@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+dist/
+*.log
+.DS_Store
+
+# Uploaded part images (keep the directory, ignore its contents)
+server/uploads/*
+!server/uploads/.gitkeep

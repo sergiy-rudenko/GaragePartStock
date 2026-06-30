@@ -57,14 +57,46 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 .app-header {
   background: linear-gradient(100deg, #4338ca 0%, #4f46e5 55%, #6366f1 100%);
   color: #fff;
-  padding: var(--sp-4) var(--sp-6);
   box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
+.app-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--sp-3) var(--sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+.brand { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.brand-mark {
+  flex: 0 0 auto;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.brand-text { min-width: 0; }
 .app-header h1 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+.brand-tagline {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 /* Layout */
@@ -85,6 +117,14 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   padding: var(--sp-5);
   box-shadow: var(--shadow-sm);
 }
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+}
+/* Center a standalone empty state within the content panel's height */
+.content > .empty-state { margin: auto 0; }
+.content > .parts-panel { flex: 1; }
 
 .sidebar-header, .panel-header {
   display: flex;
@@ -112,6 +152,18 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   white-space: nowrap;
 }
 .btn:active { transform: translateY(1px); }
+
+/* Visible keyboard focus for all interactive controls */
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.link-btn:focus-visible,
+.qty-btn:focus-visible,
+.car-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.btn-danger:focus-visible,
+.icon-btn.danger:focus-visible { outline-color: var(--danger); }
 .btn-primary {
   background: var(--primary);
   color: #fff;
@@ -203,9 +255,9 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.car-card:hover { background: var(--surface-alt); border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.car-card:hover { background: var(--surface-alt); border-color: var(--border-strong); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .car-card.active {
   border-color: var(--primary);
   background: var(--primary-soft);
@@ -496,12 +548,29 @@ img.thumb, .car-thumb img { cursor: zoom-in; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
 }
-.empty-state p { margin: 0; }
-.empty-emoji { font-size: 2.5rem; line-height: 1; opacity: 0.85; }
-.small-empty { padding: var(--sp-5) var(--sp-3); }
-.small-empty .empty-emoji { font-size: 1.8rem; }
+.empty-state p { margin: 0; max-width: 32ch; }
+.empty-title {
+  margin: 0 0 0.2rem;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.empty-emoji {
+  font-size: 2.25rem;
+  line-height: 1;
+  width: 4rem;
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  border-radius: var(--radius-pill);
+}
+.small-empty { padding: var(--sp-5) var(--sp-3); gap: var(--sp-3); }
+.small-empty .empty-emoji { font-size: 1.6rem; width: 3rem; height: 3rem; }
+.small-empty .empty-title { font-size: 0.95rem; }
 
 /* Toasts */
 .toast-container {
@@ -614,7 +683,8 @@ img.thumb, .car-thumb img { cursor: zoom-in; }
   .layout { grid-template-columns: 1fr; padding: var(--sp-4); gap: var(--sp-4); }
   .form-grid { grid-template-columns: 1fr; }
   .detail-grid { grid-template-columns: 1fr; }
-  .app-header { padding: var(--sp-4); }
+  .content { min-height: auto; }
+  .app-header-inner { padding: var(--sp-3) var(--sp-4); }
   .panel-header { flex-wrap: wrap; }
 }
 

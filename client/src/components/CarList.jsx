@@ -4,14 +4,20 @@ import { useLightbox } from './LightboxProvider.jsx';
 
 const CarIcon = () => <span className="car-thumb-icon" aria-hidden>🚗</span>;
 
-export default function CarList({ cars, selectedId, onSelect, onEdit, onDelete }) {
+export default function CarList({ cars, selectedId, onSelect, onAdd, onEdit, onDelete }) {
   const openLightbox = useLightbox();
 
   if (cars.length === 0) {
     return (
       <div className="empty-state small-empty">
         <div className="empty-emoji" aria-hidden>🚗</div>
-        <p>No cars yet — add your first to get started.</p>
+        <div>
+          <h3 className="empty-title">No cars yet</h3>
+          <p>Add your first car to start tracking its parts.</p>
+        </div>
+        {onAdd && (
+          <button className="btn btn-primary" onClick={onAdd}>+ Add Car</button>
+        )}
       </div>
     );
   }
@@ -25,6 +31,13 @@ export default function CarList({ cars, selectedId, onSelect, onEdit, onDelete }
             key={car.id}
             className={`car-card ${car.id === selectedId ? 'active' : ''}`}
             onClick={() => onSelect(car)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(car); }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-pressed={car.id === selectedId}
+            aria-label={`View parts for ${label}`}
           >
             <div
               className="car-thumb"

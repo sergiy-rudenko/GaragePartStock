@@ -110,10 +110,20 @@ export default function App() {
     }
   }
 
+  const openAddCar = () => { setEditing(null); setShowForm(true); };
+
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🚗 Car Parts Inventory</h1>
+        <div className="app-header-inner">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden>🚗</span>
+            <div className="brand-text">
+              <h1>Car Parts Inventory</h1>
+              <p className="brand-tagline">Track parts, stock and barcodes across your garage</p>
+            </div>
+          </div>
+        </div>
       </header>
 
       <div className="layout">
@@ -138,7 +148,7 @@ export default function App() {
 
           <div className="sidebar-header">
             <h2>Cars</h2>
-            <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
+            <button className="btn btn-primary" onClick={openAddCar}>
               + Add Car
             </button>
           </div>
@@ -150,6 +160,7 @@ export default function App() {
               cars={cars}
               selectedId={selected?.id}
               onSelect={setSelected}
+              onAdd={openAddCar}
               onEdit={(car) => { setEditing(car); setShowForm(true); }}
               onDelete={handleDelete}
             />
@@ -168,7 +179,12 @@ export default function App() {
             <PartsPanel key={selected.id} car={selected} />
           ) : (
             <div className="empty-state">
-              <p>Select a car to view its parts, or add a new car to get started.</p>
+              <div className="empty-emoji" aria-hidden>🚘</div>
+              <div>
+                <h3 className="empty-title">No car selected</h3>
+                <p>Pick a car from the list to view its parts, or add a new one to get started.</p>
+              </div>
+              <button className="btn btn-primary" onClick={openAddCar}>+ Add Car</button>
             </div>
           )}
         </main>

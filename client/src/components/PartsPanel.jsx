@@ -5,11 +5,16 @@ import Modal from './Modal.jsx';
 import PartForm from './PartForm.jsx';
 import PartDetail from './PartDetail.jsx';
 import BarcodeScanner from './BarcodeScanner.jsx';
+import { PartsTableSkeleton } from './Skeleton.jsx';
+import { useToast } from './ToastProvider.jsx';
+import { useConfirm } from './ConfirmProvider.jsx';
 import { LOW_STOCK_THRESHOLD } from '../constants.js';
 
 export default function PartsPanel({ car }) {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [parts, setParts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [search, setSearch] = useState('');
@@ -36,6 +41,7 @@ export default function PartsPanel({ car }) {
       setParts(data);
     } catch (err) {
       setError(err.message);
+      toast.error(`Couldn't load parts: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -56,6 +62,7 @@ export default function PartsPanel({ car }) {
   }, [parts]);
 
   const lowStockCount = parts.filter((p) => p.quantity <= LOW_STOCK_THRESHOLD).length;
+  const isFiltered = Boolean(search || category);
 
   function handleSort(key) {
     if (sort === key) {
@@ -67,6 +74,8 @@ export default function PartsPanel({ car }) {
   }
 
   async function handleSubmit(data) {
+    // Errors propagate to PartForm (shown inline); success toasts here.
+    const wasEditing = Boolean(editing);
     if (editing) {
       await partsApi.update(editing.id, data);
     } else {
@@ -75,6 +84,7 @@ export default function PartsPanel({ car }) {
     setShowForm(false);
     setEditing(null);
     load();
+    toast.success(wasEditing ? 'Part updated' : 'Part added');
   }
 
   // Inline +/- quantity change: update the UI immediately, persist via PATCH,
@@ -90,17 +100,24 @@ export default function PartsPanel({ car }) {
       setParts((list) => list.map((p) => (p.id === part.id ? updated : p)));
     } catch (err) {
       setParts(prev); // roll back optimistic change
-      setError(err.message);
+      toast.error(`Couldn't update quantity: ${err.message}`);
     }
   }
 
   async function handleDelete(part) {
-    if (!window.confirm(`Delete part "${part.name}"?`)) return;
+    const ok = await confirm({
+      title: 'Delete part?',
+      message: `Delete “${part.name}”? This can't be undone.`,
+      confirmLabel: 'Delete part',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await partsApi.remove(part.id);
       load();
+      toast.success(`Deleted “${part.name}”`);
     } catch (err) {
-      setError(err.message);
+      toast.error(`Couldn't delete part: ${err.message}`);
     }
   }
 
@@ -157,7 +174,25 @@ export default function PartsPanel({ car }) {
 
       {error && <div className="form-error">{error}</div>}
       {loading ? (
-        <p className="muted">Loading…</p>
+        <PartsTableSkeleton />
+      ) : parts.length === 0 ? (
+        isFiltered ? (
+          <div className="empty-state">
+            <div className="empty-emoji" aria-hidden>🔍</div>
+            <p>No parts match your search or filters.</p>
+            <button className="btn btn-secondary" onClick={() => { setSearch(''); setCategory(''); }}>
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-emoji" aria-hidden>📦</div>
+            <p>No parts for this car yet — add your first part.</p>
+            <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
+              + Add Part
+            </button>
+          </div>
+        )
       ) : (
         <PartsTable
           parts={parts}

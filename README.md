@@ -44,7 +44,20 @@ parts associated with each one, with search, filtering, sorting, and low-stock a
   (with a scan-to-find button) — ideal for locating an item by its barcode regardless
   of which car it's filed under. Results show the owning car with a jump-to link.
 - Clean, responsive UI — cohesive palette, soft card shadows, rounded corners, and a
-  clear typographic hierarchy across the dashboard, tables, and modal forms.
+  clear typographic hierarchy across the dashboard, tables, and modal forms. On phones
+  the parts table reflows into stacked cards.
+- **Loading & empty states** — shimmer skeletons while cars/parts load, and friendly
+  empty states ("No cars yet — add your first", "No parts for this car yet").
+- **Toast notifications** — non-blocking toasts for successes and failures (part saved,
+  car deleted, lookup/search failed, …) instead of silent or blocking feedback.
+- **Confirm dialogs** — a styled confirm replaces the browser default for destructive
+  actions; deleting a car warns that it also removes all its parts.
+- **Inline form validation** — field-level errors (required name, valid year, etc.),
+  with Save disabled and a "Saving…" state while submitting.
+- **Keyboard & accessibility** — Esc closes modals/lightbox, Enter submits forms, focus
+  moves to the first field on open, and icon-only buttons carry aria-labels.
+- **Image lightbox** — click any part or car thumbnail to view the full-size photo in an
+  overlay; missing image files degrade gracefully to a placeholder icon.
 
 > **Camera note:** browsers only grant `getUserMedia` (camera) access over
 > **`https://` or `http://localhost`**. The Vite dev server on `localhost` works

@@ -1,5 +1,7 @@
 import { assetUrl } from '../api.js';
 import { LOW_STOCK_THRESHOLD } from '../constants.js';
+import SafeImage from './SafeImage.jsx';
+import { useLightbox } from './LightboxProvider.jsx';
 
 function row(label, value) {
   return (
@@ -11,18 +13,19 @@ function row(label, value) {
 }
 
 export default function PartDetail({ part }) {
+  const openLightbox = useLightbox();
   const low = part.quantity <= LOW_STOCK_THRESHOLD;
   const price = part.unit_price != null ? `$${Number(part.unit_price).toFixed(2)}` : null;
 
   return (
     <div className="part-detail">
-      {part.photo_url ? (
-        <a href={assetUrl(part.photo_url)} target="_blank" rel="noreferrer">
-          <img className="detail-photo" src={assetUrl(part.photo_url)} alt={part.name} />
-        </a>
-      ) : (
-        <div className="detail-photo placeholder">No photo</div>
-      )}
+      <SafeImage
+        src={assetUrl(part.photo_url)}
+        alt={part.name}
+        className="detail-photo clickable"
+        onClick={() => openLightbox(part.photo_url)}
+        fallback={<div className="detail-photo placeholder">No photo</div>}
+      />
 
       <div className="detail-grid">
         {row('Name', part.name)}

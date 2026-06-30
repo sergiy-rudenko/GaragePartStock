@@ -19,10 +19,27 @@ export default function PartForm({ initial, carId, onSubmit, onCancel, onExistin
   const [scanning, setScanning] = useState(false);
   const [duplicate, setDuplicate] = useState(null);
   const [lookup, setLookup] = useState(null); // { status: 'loading'|'filled'|'none', message }
+  const [errors, setErrors] = useState({});
   const lastLookupRef = useRef('');
 
-  const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const change = (e) => {
+    const { name } = e.target;
+    setForm((f) => ({ ...f, [name]: e.target.value }));
+    setErrors((errs) => (errs[name] ? { ...errs, [name]: undefined } : errs));
+  };
   const setField = (name, value) => setForm((f) => ({ ...f, [name]: value }));
+
+  function validate() {
+    const errs = {};
+    if (!form.name.trim()) errs.name = 'Name is required';
+    if (form.quantity !== '' && (!Number.isInteger(Number(form.quantity)) || Number(form.quantity) < 0)) {
+      errs.quantity = 'Quantity must be a whole number ≥ 0';
+    }
+    if (form.unit_price !== '' && (Number.isNaN(Number(form.unit_price)) || Number(form.unit_price) < 0)) {
+      errs.unit_price = 'Price must be a number ≥ 0';
+    }
+    return errs;
+  }
 
   // Called after a scan or when the barcode field loses focus. Resolves the
   // barcode via the backend: local DB match (avoid duplicate) → external
@@ -78,6 +95,9 @@ export default function PartForm({ initial, carId, onSubmit, onCancel, onExistin
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
     setSaving(true);
     try {
       await onSubmit({
@@ -127,7 +147,8 @@ export default function PartForm({ initial, carId, onSubmit, onCancel, onExistin
       <div className="form-grid">
         <label>
           Name *
-          <input name="name" value={form.name} onChange={change} required />
+          <input name="name" value={form.name} onChange={change} aria-invalid={!!errors.name} />
+          {errors.name && <span className="field-error">{errors.name}</span>}
         </label>
         <label>
           Part Number
@@ -143,11 +164,13 @@ export default function PartForm({ initial, carId, onSubmit, onCancel, onExistin
         </label>
         <label>
           Quantity
-          <input name="quantity" type="number" min="0" value={form.quantity} onChange={change} />
+          <input name="quantity" type="number" min="0" value={form.quantity} onChange={change} aria-invalid={!!errors.quantity} />
+          {errors.quantity && <span className="field-error">{errors.quantity}</span>}
         </label>
         <label>
           Unit Price
-          <input name="unit_price" type="number" min="0" step="0.01" value={form.unit_price} onChange={change} />
+          <input name="unit_price" type="number" min="0" step="0.01" value={form.unit_price} onChange={change} aria-invalid={!!errors.unit_price} />
+          {errors.unit_price && <span className="field-error">{errors.unit_price}</span>}
         </label>
         <label>
           Storage Location

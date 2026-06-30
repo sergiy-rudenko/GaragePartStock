@@ -6,8 +6,13 @@ import Modal from './components/Modal.jsx';
 import CarForm from './components/CarForm.jsx';
 import BarcodeScanner from './components/BarcodeScanner.jsx';
 import GlobalSearchResults from './components/GlobalSearchResults.jsx';
+import { CarListSkeleton } from './components/Skeleton.jsx';
+import { useToast } from './components/ToastProvider.jsx';
+import { useConfirm } from './components/ConfirmProvider.jsx';
 
 export default function App() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [cars, setCars] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +39,7 @@ export default function App() {
       setSelected(next);
     } catch (err) {
       setError(err.message);
+      toast.error(`Couldn't load cars: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -53,7 +59,7 @@ export default function App() {
       try {
         setGlobalResults(await partsApi.searchAll(q));
       } catch (err) {
-        setError(err.message);
+        toast.error(`Search failed: ${err.message}`);
       } finally {
         setGlobalLoading(false);
       }
@@ -71,25 +77,36 @@ export default function App() {
   }
 
   async function handleSubmit(data) {
+    // Errors propagate to CarForm, which shows them inline; success toasts here.
     if (editing) {
       const updated = await carsApi.update(editing.id, data);
       await loadCars(updated.id);
+      toast.success('Car updated');
     } else {
       const created = await carsApi.create(data);
       await loadCars(created.id);
+      toast.success('Car added');
     }
     setShowForm(false);
     setEditing(null);
   }
 
   async function handleDelete(car) {
-    if (!window.confirm(`Delete ${car.year} ${car.make} ${car.model} and all its parts?`)) return;
+    const ok = await confirm({
+      title: 'Delete car?',
+      message: `Delete ${car.year} ${car.make} ${car.model}? This also removes all of its parts. This can't be undone.`,
+      confirmLabel: 'Delete car',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await carsApi.remove(car.id);
       if (selected?.id === car.id) setSelected(null);
       await loadCars(selected?.id === car.id ? null : selected?.id);
+      toast.success(`Deleted ${car.year} ${car.make} ${car.model}`);
     } catch (err) {
       setError(err.message);
+      toast.error(`Couldn't delete car: ${err.message}`);
     }
   }
 
@@ -110,11 +127,11 @@ export default function App() {
                 value={globalQuery}
                 onChange={(e) => setGlobalQuery(e.target.value)}
               />
-              <button className="btn btn-secondary" onClick={() => setGlobalScan(true)} title="Scan a barcode to find a part">
+              <button className="btn btn-secondary" onClick={() => setGlobalScan(true)} title="Scan a barcode to find a part" aria-label="Scan a barcode to find a part">
                 📷
               </button>
               {globalQuery && (
-                <button className="btn btn-secondary" onClick={() => setGlobalQuery('')} title="Clear">×</button>
+                <button className="btn btn-secondary" onClick={() => setGlobalQuery('')} title="Clear search" aria-label="Clear search">×</button>
               )}
             </div>
           </div>
@@ -127,7 +144,7 @@ export default function App() {
           </div>
           {error && <div className="form-error">{error}</div>}
           {loading ? (
-            <p className="muted">Loading…</p>
+            <CarListSkeleton />
           ) : (
             <CarList
               cars={cars}

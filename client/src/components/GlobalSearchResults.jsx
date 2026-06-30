@@ -1,9 +1,14 @@
 import { assetUrl } from '../api.js';
 import { LOW_STOCK_THRESHOLD } from '../constants.js';
+import SafeImage from './SafeImage.jsx';
+import { useLightbox } from './LightboxProvider.jsx';
+
+const PartIcon = () => <span className="thumb placeholder" aria-hidden>📦</span>;
 
 // Results of a cross-car part search. Each row shows the owning car and a
 // button to jump to it.
 export default function GlobalSearchResults({ query, results, loading, onGoToCar }) {
+  const openLightbox = useLightbox();
   return (
     <section className="parts-panel">
       <div className="panel-header">
@@ -37,21 +42,23 @@ export default function GlobalSearchResults({ query, results, loading, onGoToCar
                 const carLabel = `${part.car_year} ${part.car_make} ${part.car_model}`;
                 return (
                   <tr key={part.id}>
-                    <td className="thumb-cell">
-                      {part.photo_url ? (
-                        <img className="thumb" src={assetUrl(part.photo_url)} alt={part.name} />
-                      ) : (
-                        <span className="thumb placeholder" aria-hidden>📦</span>
-                      )}
+                    <td className="thumb-cell" data-label="">
+                      <SafeImage
+                        src={assetUrl(part.photo_url)}
+                        alt={part.name}
+                        className="thumb"
+                        fallback={<PartIcon />}
+                        onClick={part.photo_url ? () => openLightbox(part.photo_url) : undefined}
+                      />
                     </td>
-                    <td>{part.name}</td>
-                    <td>{part.part_number || '—'}</td>
-                    <td>{part.barcode || '—'}</td>
-                    <td>
+                    <td data-label="Name">{part.name}</td>
+                    <td data-label="Part #">{part.part_number || '—'}</td>
+                    <td data-label="Barcode">{part.barcode || '—'}</td>
+                    <td data-label="Qty">
                       <span className={low ? 'badge badge-low' : 'badge badge-ok'}>{part.quantity}</span>
                       {low && <span className="low-stock-flag" title="Low stock">⚠</span>}
                     </td>
-                    <td>
+                    <td data-label="Car">
                       {carLabel}
                       {part.car_nickname && <span className="car-nickname"> “{part.car_nickname}”</span>}
                     </td>

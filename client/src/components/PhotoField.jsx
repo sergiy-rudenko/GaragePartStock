@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { partsApi, assetUrl } from '../api.js';
 import CameraCapture from './CameraCapture.jsx';
+import SafeImage from './SafeImage.jsx';
 
 // Shared photo picker used by both the part and car forms: thumbnail preview
 // with Remove, plus Upload (file) and Use Camera (getUserMedia) actions.
@@ -52,7 +53,11 @@ export default function PhotoField({ value, onChange, onBusyChange, label = 'Pho
       <div className="photo-field">
         {value ? (
           <div className="photo-preview">
-            <img src={assetUrl(value)} alt="" />
+            <SafeImage
+              src={assetUrl(value)}
+              alt="Preview"
+              fallback={<div className="photo-placeholder">Image unavailable</div>}
+            />
             <button type="button" className="link-btn" onClick={() => onChange('')}>Remove</button>
           </div>
         ) : (

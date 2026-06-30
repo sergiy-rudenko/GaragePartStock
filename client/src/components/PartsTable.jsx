@@ -1,5 +1,7 @@
 import { LOW_STOCK_THRESHOLD } from '../constants.js';
 import { assetUrl } from '../api.js';
+import SafeImage from './SafeImage.jsx';
+import { useLightbox } from './LightboxProvider.jsx';
 
 const COLUMNS = [
   { key: 'photo', label: '' },
@@ -13,16 +15,15 @@ const COLUMNS = [
   { key: 'storage_location', label: 'Location' },
 ];
 
+const PartIcon = () => <span className="thumb placeholder" aria-hidden>📦</span>;
+
 function formatPrice(value) {
   if (value == null) return '—';
   return `$${Number(value).toFixed(2)}`;
 }
 
 export default function PartsTable({ parts, sort, order, onSort, onView, onEdit, onDelete, onAdjustQuantity }) {
-  if (parts.length === 0) {
-    return <p className="muted">No parts match your filters.</p>;
-  }
-
+  const openLightbox = useLightbox();
   const arrow = (key) => (sort === key ? (order === 'asc' ? ' ▲' : ' ▼') : '');
 
   return (
@@ -50,22 +51,25 @@ export default function PartsTable({ parts, sort, order, onSort, onView, onEdit,
             const low = part.quantity <= LOW_STOCK_THRESHOLD;
             return (
               <tr key={part.id} className="clickable-row" onClick={() => onView(part)}>
-                <td className="thumb-cell">
-                  {part.photo_url ? (
-                    <img className="thumb" src={assetUrl(part.photo_url)} alt={part.name} />
-                  ) : (
-                    <span className="thumb placeholder" aria-hidden>📦</span>
-                  )}
+                <td className="thumb-cell" data-label="">
+                  <SafeImage
+                    src={assetUrl(part.photo_url)}
+                    alt={part.name}
+                    className="thumb"
+                    fallback={<PartIcon />}
+                    onClick={part.photo_url ? (e) => { e.stopPropagation(); openLightbox(part.photo_url); } : undefined}
+                  />
                 </td>
-                <td>{part.name}</td>
-                <td>{part.part_number || '—'}</td>
-                <td>{part.category || '—'}</td>
-                <td>{part.brand || '—'}</td>
-                <td onClick={(e) => e.stopPropagation()}>
+                <td data-label="Name">{part.name}</td>
+                <td data-label="Part #">{part.part_number || '—'}</td>
+                <td data-label="Category">{part.category || '—'}</td>
+                <td data-label="Brand">{part.brand || '—'}</td>
+                <td data-label="Qty" onClick={(e) => e.stopPropagation()}>
                   <div className="qty-cell">
                     <button
                       className="qty-btn"
-                      title="Decrease"
+                      title="Decrease quantity"
+                      aria-label={`Decrease quantity of ${part.name}`}
                       onClick={() => onAdjustQuantity(part, -1)}
                       disabled={part.quantity <= 0}
                     >−</button>
@@ -74,19 +78,20 @@ export default function PartsTable({ parts, sort, order, onSort, onView, onEdit,
                     </span>
                     <button
                       className="qty-btn"
-                      title="Increase"
+                      title="Increase quantity"
+                      aria-label={`Increase quantity of ${part.name}`}
                       onClick={() => onAdjustQuantity(part, 1)}
                     >+</button>
                   </div>
                   {low && <span className="low-stock-flag" title="Low stock">⚠ low</span>}
                 </td>
-                <td>{formatPrice(part.unit_price)}</td>
-                <td>{part.condition || '—'}</td>
-                <td>{part.storage_location || '—'}</td>
+                <td data-label="Unit Price">{formatPrice(part.unit_price)}</td>
+                <td data-label="Condition">{part.condition || '—'}</td>
+                <td data-label="Location">{part.storage_location || '—'}</td>
                 <td className="row-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="icon-btn" title="View" onClick={() => onView(part)}>👁</button>
-                  <button className="icon-btn" title="Edit" onClick={() => onEdit(part)}>✎</button>
-                  <button className="icon-btn danger" title="Delete" onClick={() => onDelete(part)}>🗑</button>
+                  <button className="icon-btn" title="View" aria-label={`View ${part.name}`} onClick={() => onView(part)}>👁</button>
+                  <button className="icon-btn" title="Edit" aria-label={`Edit ${part.name}`} onClick={() => onEdit(part)}>✎</button>
+                  <button className="icon-btn danger" title="Delete" aria-label={`Delete ${part.name}`} onClick={() => onDelete(part)}>🗑</button>
                 </td>
               </tr>
             );

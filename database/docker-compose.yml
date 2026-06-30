@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16
+    container_name: garagepartstock-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: carparts
+      POSTGRES_PASSWORD: carparts
+      POSTGRES_DB: car_parts
+      TZ: America/Montreal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../server/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+volumes:
+  pgdata:

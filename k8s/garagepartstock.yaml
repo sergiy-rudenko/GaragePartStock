@@ -1,0 +1,187 @@
+###############################################################################
+# GaragePartStock — full stack in its own namespace
+# Persistence via hostPath under /srv/garagepartstock (media-stack style)
+# Local images, containerd k8s.io namespace, imagePullPolicy: IfNotPresent
+###############################################################################
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: garagepartstock
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: garagepartstock
+type: Opaque
+stringData:
+  POSTGRES_USER: carparts
+  POSTGRES_PASSWORD: changeme-pick-a-real-one
+  POSTGRES_DB: car_parts
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: garagepartstock
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+          env:
+            - name: TZ
+              value: "America/Montreal"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "carparts", "-d", "car_parts"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: pgdata
+          hostPath:
+            path: /srv/garagepartstock/postgres
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: garagepartstock
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: garagepartstock
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: garagepartstock-backend:1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: "America/Montreal"
+            - name: PORT
+              value: "4000"
+            - name: CORS_ORIGIN
+              value: "*"
+            - name: DATABASE_URL
+              value: "postgresql://carparts:changeme-pick-a-real-one@postgres:5432/car_parts"
+          ports:
+            - containerPort: 4000
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          hostPath:
+            path: /srv/garagepartstock/uploads
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: garagepartstock
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 4000
+      targetPort: 4000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: garagepartstock
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: garagepartstock-frontend:1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: garagepartstock
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: garagepartstock
+  namespace: garagepartstock
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "12m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: garage.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

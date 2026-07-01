@@ -443,6 +443,34 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 }
 .global-search .search { flex: 1; }
 
+/* Join the search input and its scan/clear button(s) into one cohesive control:
+   no gap, collapsed shared border, only the outer corners rounded — so they read
+   as a single paired unit instead of two detached pills with the panel
+   background showing between them. */
+.global-search .input-with-btn { gap: 0; }
+.global-search .input-with-btn > input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.global-search .input-with-btn > .btn {
+  border-radius: 0;
+  margin-left: -1px; /* collapse the doubled 1px border into a single seam */
+}
+.global-search .input-with-btn > .btn:last-child {
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+}
+/* Keep the group flush: don't let the button's hover lift pop it out of line. */
+.global-search .input-with-btn > .btn:hover:not(:disabled),
+.global-search .input-with-btn > .btn:active:not(:disabled) { transform: none; }
+/* Lift the focused/hovered control so its border/ring isn't hidden by a neighbor. */
+.global-search .input-with-btn > input:focus,
+.global-search .input-with-btn > .btn:hover,
+.global-search .input-with-btn > .btn:focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
 /* Inputs (shared baseline) */
 .search,
 .toolbar input, .toolbar select,

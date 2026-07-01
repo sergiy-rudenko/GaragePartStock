@@ -1,6 +1,26 @@
 -- Car parts inventory schema
 -- Run with: psql "$DATABASE_URL" -f schema.sql
 
+-- Users (self-hosted authentication). Passwords are ALWAYS stored as a bcrypt
+-- hash in password_hash — never in plaintext.
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL PRIMARY KEY,
+    email         TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'user',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Session store for express-session / connect-pg-simple.
+-- Declared with sid as the PRIMARY KEY inline so this stays idempotent
+-- (no separate ADD CONSTRAINT, which would fail on re-run).
+CREATE TABLE IF NOT EXISTS "session" (
+    "sid"    varchar NOT NULL PRIMARY KEY,
+    "sess"   json NOT NULL,
+    "expire" timestamp(6) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+
 CREATE TABLE IF NOT EXISTS cars (
     id          SERIAL PRIMARY KEY,
     make        TEXT NOT NULL,

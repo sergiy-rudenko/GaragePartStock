@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { carsApi, partsApi } from './api.js';
+import { carsApi, partsApi, statsApi } from './api.js';
 import CarList from './components/CarList.jsx';
 import PartsPanel from './components/PartsPanel.jsx';
 import Modal from './components/Modal.jsx';
 import CarForm from './components/CarForm.jsx';
 import BarcodeScanner from './components/BarcodeScanner.jsx';
 import GlobalSearchResults from './components/GlobalSearchResults.jsx';
+import StatsBar from './components/StatsBar.jsx';
+import LowStockView from './components/LowStockView.jsx';
 import { CarListSkeleton } from './components/Skeleton.jsx';
 import { useToast } from './components/ToastProvider.jsx';
 import { useConfirm } from './components/ConfirmProvider.jsx';
+import { LOW_STOCK_THRESHOLD } from './constants.js';
 
 export default function App() {
   const toast = useToast();
@@ -21,14 +24,25 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
+  // Dashboard summary stats.
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Cross-car low-stock view.
+  const [lowStockView, setLowStockView] = useState(false);
+  const [lowStockResults, setLowStockResults] = useState([]);
+  const [lowStockLoading, setLowStockLoading] = useState(false);
+
   // Global (cross-car) search state.
   const [globalQuery, setGlobalQuery] = useState('');
   const [globalResults, setGlobalResults] = useState([]);
   const [globalLoading, setGlobalLoading] = useState(false);
   const [globalScan, setGlobalScan] = useState(false);
 
-  async function loadCars(selectId) {
-    setLoading(true);
+  // `silent` refreshes the list without flashing the skeleton — used when part
+  // edits change a car's counts/value and the sidebar should update in place.
+  async function loadCars(selectId, { silent = false } = {}) {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const data = await carsApi.list();
@@ -41,12 +55,54 @@ export default function App() {
       setError(err.message);
       toast.error(`Couldn't load cars: ${err.message}`);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
+  }
+
+  async function loadStats() {
+    try {
+      setStats(await statsApi.get());
+    } catch {
+      // Non-critical: leave the last known stats in place.
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  async function loadLowStock() {
+    setLowStockLoading(true);
+    try {
+      setLowStockResults(await partsApi.lowStock());
+    } catch (err) {
+      toast.error(`Couldn't load low-stock parts: ${err.message}`);
+    } finally {
+      setLowStockLoading(false);
+    }
+  }
+
+  // Refresh dashboard-wide figures (sidebar counts/value + stats bar) after a
+  // part changes inside a panel, without disturbing the current selection.
+  function refreshDashboard() {
+    loadCars(selected?.id, { silent: true });
+    loadStats();
+    if (lowStockView) loadLowStock();
+  }
+
+  function selectCar(car) {
+    setLowStockView(false);
+    setSelected(car);
+  }
+
+  function openLowStock() {
+    setGlobalQuery('');
+    setGlobalResults([]);
+    setLowStockView(true);
+    loadLowStock();
   }
 
   useEffect(() => {
     loadCars();
+    loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,6 +129,7 @@ export default function App() {
       || { id: part.car_id, make: part.car_make, model: part.car_model, year: part.car_year, nickname: part.car_nickname };
     setGlobalQuery('');
     setGlobalResults([]);
+    setLowStockView(false);
     setSelected(car);
   }
 
@@ -87,6 +144,7 @@ export default function App() {
       await loadCars(created.id);
       toast.success('Car added');
     }
+    loadStats();
     setShowForm(false);
     setEditing(null);
   }
@@ -103,6 +161,7 @@ export default function App() {
       await carsApi.remove(car.id);
       if (selected?.id === car.id) setSelected(null);
       await loadCars(selected?.id === car.id ? null : selected?.id);
+      loadStats();
       toast.success(`Deleted ${car.year} ${car.make} ${car.model}`);
     } catch (err) {
       setError(err.message);
@@ -125,6 +184,10 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      <div className="dashboard">
+        <StatsBar stats={stats} loading={statsLoading} onShowLowStock={openLowStock} />
+      </div>
 
       <div className="layout">
         <aside className="sidebar">
@@ -158,8 +221,8 @@ export default function App() {
           ) : (
             <CarList
               cars={cars}
-              selectedId={selected?.id}
-              onSelect={setSelected}
+              selectedId={lowStockView ? null : selected?.id}
+              onSelect={selectCar}
               onAdd={openAddCar}
               onEdit={(car) => { setEditing(car); setShowForm(true); }}
               onDelete={handleDelete}
@@ -168,7 +231,15 @@ export default function App() {
         </aside>
 
         <main className="content">
-          {globalQuery.trim() ? (
+          {lowStockView ? (
+            <LowStockView
+              results={lowStockResults}
+              loading={lowStockLoading}
+              threshold={LOW_STOCK_THRESHOLD}
+              onGoToCar={goToCar}
+              onBack={() => setLowStockView(false)}
+            />
+          ) : globalQuery.trim() ? (
             <GlobalSearchResults
               query={globalQuery.trim()}
               results={globalResults}
@@ -176,7 +247,7 @@ export default function App() {
               onGoToCar={goToCar}
             />
           ) : selected ? (
-            <PartsPanel key={selected.id} car={selected} />
+            <PartsPanel key={selected.id} car={selected} onChanged={refreshDashboard} />
           ) : (
             <div className="empty-state">
               <div className="empty-emoji" aria-hidden>🚘</div>

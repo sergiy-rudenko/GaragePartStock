@@ -10,7 +10,7 @@ import { useToast } from './ToastProvider.jsx';
 import { useConfirm } from './ConfirmProvider.jsx';
 import { LOW_STOCK_THRESHOLD } from '../constants.js';
 
-export default function PartsPanel({ car }) {
+export default function PartsPanel({ car, onChanged }) {
   const toast = useToast();
   const confirm = useConfirm();
   const [parts, setParts] = useState([]);
@@ -84,6 +84,7 @@ export default function PartsPanel({ car }) {
     setShowForm(false);
     setEditing(null);
     load();
+    onChanged?.();
     toast.success(wasEditing ? 'Part updated' : 'Part added');
   }
 
@@ -98,6 +99,7 @@ export default function PartsPanel({ car }) {
     try {
       const updated = await partsApi.patch(part.id, { quantity: newQty });
       setParts((list) => list.map((p) => (p.id === part.id ? updated : p)));
+      onChanged?.();
     } catch (err) {
       setParts(prev); // roll back optimistic change
       toast.error(`Couldn't update quantity: ${err.message}`);
@@ -115,6 +117,7 @@ export default function PartsPanel({ car }) {
     try {
       await partsApi.remove(part.id);
       load();
+      onChanged?.();
       toast.success(`Deleted “${part.name}”`);
     } catch (err) {
       toast.error(`Couldn't delete part: ${err.message}`);

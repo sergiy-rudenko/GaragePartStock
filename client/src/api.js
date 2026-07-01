@@ -20,6 +20,11 @@ export const carsApi = {
   remove: (id) => unwrap(client.delete(`/cars/${id}`)),
 };
 
+export const statsApi = {
+  // Dashboard summary: { total_cars, total_parts, total_value, low_stock_count, low_stock_threshold }.
+  get: () => unwrap(client.get('/stats')),
+};
+
 export const partsApi = {
   list: (params) => unwrap(client.get('/parts', { params })),
   create: (data) => unwrap(client.post('/parts', data)),
@@ -29,6 +34,16 @@ export const partsApi = {
 
   // Global search across ALL cars; each result includes car_* fields.
   searchAll: (q) => unwrap(client.get('/parts/search', { params: { q } })),
+
+  // Every part across all cars at/below the low-stock threshold (with car_* fields).
+  lowStock: () => unwrap(client.get('/parts/low-stock')),
+
+  // Distinct existing categories, for type-ahead suggestions.
+  categories: () => unwrap(client.get('/parts/categories')),
+
+  // Bulk-add pre-parsed rows to a car. Resolves to { created } or throws with
+  // per-row details on validation failure.
+  importParts: (carId, parts) => unwrap(client.post('/parts/import', { car_id: carId, parts })),
 
   // Upload an image File; returns { photo_url }.
   uploadPhoto: (file) => {
@@ -63,4 +78,12 @@ export function assetUrl(p) {
     }
   }
   return p;
+}
+
+// Build the URL for the CSV export endpoint. Pass a carId to export one car's
+// parts, or omit it to export every part across all cars. Used as an <a href>
+// so the browser downloads the file directly.
+export function partsExportUrl(carId) {
+  const qs = carId ? `?car_id=${encodeURIComponent(carId)}` : '';
+  return `${baseURL}/parts/export${qs}`;
 }

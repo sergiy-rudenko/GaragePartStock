@@ -70,7 +70,37 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-4);
+  flex-wrap: wrap;
+  row-gap: var(--sp-2);
 }
+
+/* Primary view nav — segmented control in the header */
+.app-nav {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-pill);
+}
+.nav-tab {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: #fff; }
+.nav-tab.active { background: #fff; color: var(--text); box-shadow: var(--shadow-sm); }
+.nav-tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* Tools uses the single-column layout */
+.tools-layout { grid-template-columns: 1fr; max-width: 1100px; }
 .brand { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
 /* White chip seats the logo (which has its own white backdrop) crisply on the
    green header. */

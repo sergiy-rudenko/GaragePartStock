@@ -8,6 +8,7 @@ import BarcodeScanner from './components/BarcodeScanner.jsx';
 import GlobalSearchResults from './components/GlobalSearchResults.jsx';
 import StatsBar from './components/StatsBar.jsx';
 import LowStockView from './components/LowStockView.jsx';
+import ToolsView from './components/ToolsView.jsx';
 import { CarListSkeleton } from './components/Skeleton.jsx';
 import { useToast } from './components/ToastProvider.jsx';
 import { useConfirm } from './components/ConfirmProvider.jsx';
@@ -16,6 +17,8 @@ import { LOW_STOCK_THRESHOLD } from './constants.js';
 export default function App() {
   const toast = useToast();
   const confirm = useConfirm();
+  // Top-level view: the existing Cars & Parts experience (default) or Tools.
+  const [view, setView] = useState('parts');
   const [cars, setCars] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -184,9 +187,33 @@ export default function App() {
               <p className="brand-tagline">Track parts, stock and barcodes across your garage</p>
             </div>
           </div>
+          <nav className="app-nav" aria-label="Primary">
+            <button
+              className={`nav-tab${view === 'parts' ? ' active' : ''}`}
+              onClick={() => setView('parts')}
+              aria-current={view === 'parts' ? 'page' : undefined}
+            >
+              Cars &amp; Parts
+            </button>
+            <button
+              className={`nav-tab${view === 'tools' ? ' active' : ''}`}
+              onClick={() => setView('tools')}
+              aria-current={view === 'tools' ? 'page' : undefined}
+            >
+              Tools
+            </button>
+          </nav>
         </div>
       </header>
 
+      {view === 'tools' ? (
+        <div className="layout tools-layout">
+          <main className="content">
+            <ToolsView />
+          </main>
+        </div>
+      ) : (
+      <>
       <div className="dashboard">
         <StatsBar stats={stats} loading={statsLoading} onShowLowStock={openLowStock} />
         {(stats?.total_parts ?? 0) > 0 && (
@@ -290,6 +317,8 @@ export default function App() {
             onCancel={() => setGlobalScan(false)}
           />
         </Modal>
+      )}
+      </>
       )}
     </div>
   );

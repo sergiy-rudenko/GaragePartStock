@@ -16,6 +16,10 @@ parts associated with each one, with search, filtering, sorting, and low-stock a
 
 ## Features
 
+- **Self-hosted accounts** — email/password sign-up & login (bcrypt-hashed),
+  Postgres-backed sessions, and **per-user data isolation** so each account only
+  ever sees and touches its own cars, parts and tools. Optional **admin** role
+  (server-enforced) with a user-list view.
 - Dashboard listing all cars (with per-car part counts, **total inventory value**,
   and a low-stock chip); click a car to view its parts.
 - **Summary stats bar** — total cars, total parts, total inventory value
@@ -137,6 +141,7 @@ curl http://localhost:4000/api/health
 | `DATABASE_URL`            | PostgreSQL connection string (**required**)                  | —                                                |
 | `PORT`                    | Port the Express server listens on                           | `4000`                                           |
 | `CORS_ORIGIN`             | Comma-separated allowed frontend origin(s)                   | `http://localhost:5173`                          |
+| `SESSION_SECRET`          | Secret used to sign the session cookie (**required in prod**) | _(insecure dev default if unset)_               |
 | `LOW_STOCK_THRESHOLD`     | Quantity at/below which a part counts as low stock (optional) | `5`                                             |
 | `BARCODE_LOOKUP_PROVIDER` | Provider name shown in the UI ("Auto-filled from …")         | `UPCitemdb`                                       |
 | `BARCODE_LOOKUP_URL`      | Lookup endpoint (UPC passed as `?upc=`)                      | `https://api.upcitemdb.com/prod/trial/lookup`    |
@@ -181,9 +186,93 @@ Open <http://localhost:5173> in your browser.
 
 ---
 
+## User accounts, data isolation & admin
+
+The app requires an account. Open it and **Sign up** to create the first user,
+then sign in — unauthenticated visitors only see the login screen. Every car,
+part and tool you create is private to your account.
+
+Set a strong `SESSION_SECRET` in `server/.env` (see `.env.example`); generate one with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+### Claiming pre-auth data
+
+For data created before auth existed (rows with `user_id IS NULL`), assign
+ownership with the idempotent script (only NULL rows are touched):
+
+```bash
+cd server
+node scripts/claim-data.mjs                       # first/oldest user
+node scripts/claim-data.mjs --email you@example.com
+node scripts/claim-data.mjs --user-id 1
+```
+
+Run this **before** re-applying `schema.sql`: the lock-down enforces `NOT NULL`
+on `user_id` only once there are no unclaimed rows, so existing data survives.
+
+### Promoting an admin
+
+Make an account an admin (idempotent):
+
+```bash
+cd server
+node scripts/promote-admin.mjs you@example.com
+```
+
+or the equivalent SQL:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
+```
+
+Admins get an **Admin** tab listing all users and their inventory counts; the
+role is enforced server-side on every admin request.
+
+---
+
 ## API reference
 
 Base URL: `http://localhost:4000/api`
+
+### Authentication & data isolation
+
+The app is **self-hosted, single-tenant per account**. Every `/api` route except
+`GET /api/health`, `POST /api/auth/signup` and `POST /api/auth/login` requires a
+valid session and returns `401` otherwise. All data is **owned by the signed-in
+user**: reads are filtered to your rows, and creates/updates/deletes only ever
+touch your rows (others return `404`/`403`). Parts are additionally gated by
+their parent car's ownership. `/parts/search`, `/tools/search` and `/lookup` are
+also user-scoped.
+
+| Method | Path            | Description                                        |
+| ------ | --------------- | ------------------------------------------------- |
+| POST   | `/auth/signup`  | Create an account (hashes password) and log in    |
+| POST   | `/auth/login`   | Verify credentials and start a session            |
+| POST   | `/auth/logout`  | Destroy the session                               |
+| GET    | `/auth/me`      | The current user `{ id, email, role }` (401 if not) |
+
+**Auth body:** `email`, `password` (min 8 chars). Passwords are hashed with
+bcrypt (12 rounds) and never stored or returned in plaintext.
+
+Sessions are stored in Postgres (`connect-pg-simple`) and carried in an
+`httpOnly`, `sameSite=lax` cookie signed with `SESSION_SECRET`. The cookie's
+`secure` flag is `false` for local HTTP — **it must be set to `true` when served
+behind HTTPS** (see the comment in `server/src/app.js`).
+
+### Admin
+
+Admin routes require `role='admin'`, enforced **server-side** (`requireAdmin`
+middleware). Non-admins receive `403`.
+
+| Method | Path            | Description                                             |
+| ------ | --------------- | ------------------------------------------------------ |
+| GET    | `/admin/users`  | All users: id, email, role, created_at + inventory counts |
+
+Never returns password hashes or session data, and cannot view other users'
+inventory contents (counts only).
 
 ### Cars
 
@@ -362,7 +451,12 @@ curl "http://localhost:4000/api/parts/search?q=012345678905"
 
 ## Data model
 
-**cars:** `id`, `make`, `model`, `year`, `vin` (unique), `nickname`, `photo_url`, `created_at`
+**users:** `id`, `email` (unique), `password_hash` (bcrypt), `role`
+(default `'user'`), `created_at`
+
+**session:** connect-pg-simple store (`sid`, `sess`, `expire`) — session data.
+
+**cars:** `id`, `make`, `model`, `year`, `vin` (unique), `nickname`, `photo_url`, `user_id`, `created_at`
 
 **parts:** `id`, `car_id` (FK → `cars.id`, `ON DELETE CASCADE`), `name`,
 `part_number`, `category`, `brand`, `quantity`, `unit_price`, `storage_location`,
@@ -372,7 +466,8 @@ curl "http://localhost:4000/api/parts/search?q=012345678905"
 `storage_location`, `purchase_date`, `unit_price`, `barcode`, `photo_url`, `notes`,
 `user_id`, `created_at`
 
-`cars`, `parts` and `tools` each carry a nullable `user_id` (no FK yet, unused)
-for forward-compatibility with a future multi-user feature.
+`cars`, `parts` and `tools` each carry a `user_id` (FK → `users.id`, `NOT NULL`
+after the ownership lock-down) identifying the owning account. All queries are
+scoped to the signed-in user.
 
 See [`server/schema.sql`](server/schema.sql) for the full DDL.

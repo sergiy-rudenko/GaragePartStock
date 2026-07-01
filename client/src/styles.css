@@ -660,7 +660,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   font-size: 0.88rem;
 }
 
-.input-with-btn { display: flex; gap: 0.4rem; }
+.input-with-btn { display: flex; gap: 0.4rem; align-items: stretch; }
+/* Keep the input and its scan/clear button(s) a matched pair: equal height,
+   bottom edges flush, centers aligned. */
+.input-with-btn > .btn { align-self: stretch; }
 .input-with-btn input { flex: 1; }
 
 .lookup-ok { color: var(--ok); font-weight: 600; }

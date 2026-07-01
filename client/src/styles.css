@@ -215,6 +215,7 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   gap: var(--sp-4);
 }
 .stat-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -226,6 +227,17 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   text-align: left;
   font: inherit;
   color: inherit;
+  overflow: hidden;
+}
+/* Accent hairline down the left edge, tinted per card. */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--stat-accent, var(--primary));
 }
 .stat-clickable {
   cursor: pointer;
@@ -238,31 +250,43 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 }
 .stat-icon {
   flex: 0 0 auto;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.75rem;
+  height: 2.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   border-radius: var(--radius-sm);
-  background: var(--primary-soft);
+  background: var(--stat-tint, var(--primary-soft));
 }
-.stat-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.stat-body { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 .stat-label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--muted);
 }
 .stat-value {
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
-.stat-skeleton { width: 3.5rem; height: 1.15rem; margin-top: 0.25rem; }
-.stat-warn .stat-icon { background: var(--low-soft); }
+.stat-skeleton { width: 3.5rem; height: 1.3rem; margin-top: 0.3rem; }
+
+/* Per-card accent tokens (hairline + icon-tile tint) */
+.stat-accent-cars  { --stat-accent: var(--brand-600); --stat-tint: var(--primary-soft); }
+.stat-accent-parts { --stat-accent: var(--accent);    --stat-tint: var(--accent-soft); }
+.stat-accent-low   { --stat-accent: var(--muted);     --stat-tint: var(--surface-alt); }
+/* Inventory value — the emphasized card: filled brand icon tile + larger number. */
+.stat-accent-value { --stat-accent: var(--brand-600); --stat-tint: var(--brand-600); }
+.stat-accent-value .stat-icon { color: #fff; }
+.stat-accent-value .stat-value { color: var(--brand-700); font-size: 1.75rem; }
+/* Warning tone once there are low-stock items. */
+.stat-warn { --stat-accent: var(--low); --stat-tint: var(--low-soft); border-color: var(--low-border); }
 .stat-warn .stat-value { color: var(--low); }
 .dashboard-actions { display: flex; justify-content: flex-end; margin-top: var(--sp-3); }
 

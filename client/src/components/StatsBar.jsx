@@ -1,8 +1,13 @@
 import { formatMoney } from '../format.js';
 
-function StatCard({ label, value, icon, tone, onClick, hint }) {
+function StatCard({ label, value, icon, tone, accent, onClick, hint }) {
   const loading = value == null;
-  const className = `stat-card${tone ? ` stat-${tone}` : ''}${onClick ? ' stat-clickable' : ''}`;
+  const className = [
+    'stat-card',
+    accent ? `stat-accent-${accent}` : '',
+    tone ? `stat-${tone}` : '',
+    onClick ? 'stat-clickable' : '',
+  ].filter(Boolean).join(' ');
   const content = (
     <>
       <span className="stat-icon" aria-hidden>{icon}</span>
@@ -31,12 +36,13 @@ export default function StatsBar({ stats, loading, onShowLowStock }) {
   const low = stats?.low_stock_count ?? 0;
   return (
     <div className="stats-bar">
-      <StatCard label="Cars" icon="🚗" value={loading ? null : (stats?.total_cars ?? 0)} />
-      <StatCard label="Parts" icon="🧩" value={loading ? null : (stats?.total_parts ?? 0)} />
-      <StatCard label="Inventory value" icon="💰" value={loading ? null : formatMoney(stats?.total_value)} />
+      <StatCard label="Cars" icon="🚗" accent="cars" value={loading ? null : (stats?.total_cars ?? 0)} />
+      <StatCard label="Parts" icon="🔩" accent="parts" value={loading ? null : (stats?.total_parts ?? 0)} />
+      <StatCard label="Inventory value" icon="💰" accent="value" value={loading ? null : formatMoney(stats?.total_value)} />
       <StatCard
         label="Low stock"
         icon="⚠"
+        accent="low"
         value={loading ? null : low}
         tone={low > 0 ? 'warn' : undefined}
         onClick={!loading && low > 0 ? onShowLowStock : undefined}

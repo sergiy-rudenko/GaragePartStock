@@ -4,6 +4,7 @@ import cors from 'cors';
 import multer from 'multer';
 import carsRouter from './routes/cars.js';
 import partsRouter from './routes/parts.js';
+import toolsRouter from './routes/tools.js';
 import lookupRouter from './routes/lookup.js';
 import statsRouter from './routes/stats.js';
 import { UPLOADS_DIR } from './uploads.js';
@@ -27,6 +28,7 @@ export function createApp() {
 
   app.use('/api/cars', carsRouter);
   app.use('/api/parts', partsRouter);
+  app.use('/api/tools', toolsRouter);
   app.use('/api/lookup', lookupRouter);
   app.use('/api/stats', statsRouter);
 

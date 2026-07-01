@@ -9,6 +9,7 @@ export class ValidationError extends Error {
 }
 
 export const VALID_CONDITIONS = ['new', 'used', 'refurbished'];
+export const VALID_TOOL_CONDITIONS = ['new', 'used'];
 
 export function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -86,6 +87,46 @@ export function validatePart(body, { partial = false } = {}) {
       out.condition = null;
     } else if (!VALID_CONDITIONS.includes(body.condition)) {
       throw new ValidationError(`condition must be one of: ${VALID_CONDITIONS.join(', ')}`);
+    } else {
+      out.condition = body.condition;
+    }
+  }
+  if (body.notes !== undefined) out.notes = isNonEmptyString(body.notes) ? body.notes.trim() : null;
+  if (body.purchase_date !== undefined) out.purchase_date = isNonEmptyString(body.purchase_date) ? body.purchase_date : null;
+  if (body.photo_url !== undefined) out.photo_url = isNonEmptyString(body.photo_url) ? body.photo_url.trim() : null;
+  if (body.barcode !== undefined) out.barcode = isNonEmptyString(body.barcode) ? body.barcode.trim() : null;
+
+  return out;
+}
+
+// Validates and normalizes a tool payload. Mirrors validatePart but has no
+// car_id or part_number, and condition is limited to new/used.
+export function validateTool(body, { partial = false } = {}) {
+  const out = {};
+
+  if (!partial || body.name !== undefined) {
+    if (!isNonEmptyString(body.name)) throw new ValidationError('name is required');
+    out.name = body.name.trim();
+  }
+  if (body.brand !== undefined) out.brand = isNonEmptyString(body.brand) ? body.brand.trim() : null;
+  if (body.category !== undefined) out.category = isNonEmptyString(body.category) ? body.category.trim() : null;
+
+  if (body.quantity !== undefined) {
+    const q = toIntOrNull(body.quantity, 'quantity');
+    if (q !== null && q < 0) throw new ValidationError('quantity must be >= 0');
+    out.quantity = q ?? 0;
+  }
+  if (body.unit_price !== undefined) {
+    const p = toNumberOrNull(body.unit_price, 'unit_price');
+    if (p !== null && p < 0) throw new ValidationError('unit_price must be >= 0');
+    out.unit_price = p;
+  }
+  if (body.storage_location !== undefined) out.storage_location = isNonEmptyString(body.storage_location) ? body.storage_location.trim() : null;
+  if (body.condition !== undefined) {
+    if (body.condition === null || body.condition === '') {
+      out.condition = null;
+    } else if (!VALID_TOOL_CONDITIONS.includes(body.condition)) {
+      throw new ValidationError(`condition must be one of: ${VALID_TOOL_CONDITIONS.join(', ')}`);
     } else {
       out.condition = body.condition;
     }

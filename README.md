@@ -27,6 +27,10 @@ parts associated with each one, with search, filtering, sorting, and low-stock a
 - **Category suggestions** — the part form suggests existing categories as you type.
 - **Table density toggle** — switch the parts table between comfortable and compact
   rows; the choice (plus sort/order) persists across car switches for the session.
+- **Tools inventory** — a separate top-level "Tools" view (toggled from the header)
+  for tools you own, independent of any car: search, category filter, sort,
+  low-stock indicator, inline quantity +/-, photo thumbnails/lightbox, and
+  add/edit/delete with barcode scan + product lookup — mirroring the parts table.
 - Full CRUD for **cars** and **parts** via modal forms.
 - Parts table with **search** (name / part number), **category filter**, and
   **sorting** by name, quantity, or price.
@@ -259,6 +263,39 @@ Store that value in the part's `photo_url`. Images are served at
 `condition` (`new` | `used` | `refurbished`), `notes`, `purchase_date` (`YYYY-MM-DD`),
 `photo_url`, `barcode`.
 
+### Tools
+
+An inventory of tools you own, parallel to parts but **not tied to a car**.
+
+| Method | Path                | Description                                     |
+| ------ | ------------------- | ----------------------------------------------- |
+| GET    | `/tools`            | List tools (see query params below)             |
+| GET    | `/tools/search`     | Search by name / brand / barcode (`?q=`)        |
+| GET    | `/tools/categories` | Distinct categories (for suggestions)           |
+| GET    | `/tools/:id`        | Get one tool                                    |
+| POST   | `/tools`            | Create a tool                                   |
+| PUT    | `/tools/:id`        | Update a tool (partial merge)                   |
+| PATCH  | `/tools/:id`        | Partial update (e.g. inline quantity change)    |
+| DELETE | `/tools/:id`        | Delete a tool                                   |
+| POST   | `/tools/upload`     | Upload an image (`multipart/form-data`)         |
+
+**`GET /tools` query parameters:** `category` (exact), `barcode` (exact),
+`search` (case-insensitive match on `name`, `brand` **or** `barcode`),
+`sort` (`name` | `quantity` | `price` | `created_at`, default `created_at`),
+`order` (`asc` | `desc`, default `desc`).
+
+**Tool body:** `name*`, `brand`, `category`, `quantity` (int ≥ 0),
+`unit_price` (≥ 0), `storage_location`, `condition` (`new` | `used`),
+`purchase_date` (`YYYY-MM-DD`), `barcode`, `photo_url`, `notes`.
+
+Tools reuse the same image handling (a remote `photo_url` is downloaded into
+`server/uploads/` at save time) and the same barcode lookup
+(`GET /lookup/:barcode`) as parts for product auto-fill on the add form.
+
+> **Forward-compat:** a nullable `user_id` column (no FK, defaults `NULL`, unused)
+> exists on `cars`, `parts` and `tools` so a future multi-user feature won't need
+> to reshape existing data.
+
 ### Stats
 
 | Method | Path      | Description                          |
@@ -329,6 +366,13 @@ curl "http://localhost:4000/api/parts/search?q=012345678905"
 
 **parts:** `id`, `car_id` (FK → `cars.id`, `ON DELETE CASCADE`), `name`,
 `part_number`, `category`, `brand`, `quantity`, `unit_price`, `storage_location`,
-`condition`, `notes`, `purchase_date`, `photo_url`, `barcode`, `created_at`
+`condition`, `notes`, `purchase_date`, `photo_url`, `barcode`, `user_id`, `created_at`
+
+**tools:** `id`, `name`, `brand`, `category`, `quantity`, `condition` (`new`/`used`),
+`storage_location`, `purchase_date`, `unit_price`, `barcode`, `photo_url`, `notes`,
+`user_id`, `created_at`
+
+`cars`, `parts` and `tools` each carry a nullable `user_id` (no FK yet, unused)
+for forward-compatibility with a future multi-user feature.
 
 See [`server/schema.sql`](server/schema.sql) for the full DDL.

@@ -49,6 +49,11 @@ export const statsApi = {
   get: () => unwrap(client.get('/stats')),
 };
 
+export const adminApi = {
+  // Admin-only (server-enforced): all users with inventory counts. 403 otherwise.
+  users: () => unwrap(client.get('/admin/users')),
+};
+
 export const partsApi = {
   list: (params) => unwrap(client.get('/parts', { params })),
   create: (data) => unwrap(client.post('/parts', data)),

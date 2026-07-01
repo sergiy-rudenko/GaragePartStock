@@ -5,13 +5,14 @@ import multer from 'multer';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { pool } from './db.js';
-import { requireAuth } from './auth.js';
+import { requireAuth, requireAdmin } from './auth.js';
 import authRouter from './routes/auth.js';
 import carsRouter from './routes/cars.js';
 import partsRouter from './routes/parts.js';
 import toolsRouter from './routes/tools.js';
 import lookupRouter from './routes/lookup.js';
 import statsRouter from './routes/stats.js';
+import adminRouter from './routes/admin.js';
 import { UPLOADS_DIR } from './uploads.js';
 
 export function createApp() {
@@ -71,6 +72,9 @@ export function createApp() {
   app.use('/api/tools', toolsRouter);
   app.use('/api/lookup', lookupRouter);
   app.use('/api/stats', statsRouter);
+  // Admin routes: requireAuth (global, above) sets req.user; requireAdmin then
+  // enforces role='admin' SERVER-SIDE before the admin router runs.
+  app.use('/api/admin', requireAdmin, adminRouter);
 
   // 404 for unknown API routes
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));

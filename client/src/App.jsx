@@ -10,6 +10,7 @@ import GlobalSearchResults from './components/GlobalSearchResults.jsx';
 import StatsBar from './components/StatsBar.jsx';
 import LowStockView from './components/LowStockView.jsx';
 import ToolsView from './components/ToolsView.jsx';
+import AdminView from './components/AdminView.jsx';
 import { CarListSkeleton } from './components/Skeleton.jsx';
 import { useToast } from './components/ToastProvider.jsx';
 import { useConfirm } from './components/ConfirmProvider.jsx';
@@ -238,6 +239,15 @@ export default function App() {
               >
                 Tools
               </button>
+              {user.role === 'admin' && (
+                <button
+                  className={`nav-tab${view === 'admin' ? ' active' : ''}`}
+                  onClick={() => setView('admin')}
+                  aria-current={view === 'admin' ? 'page' : undefined}
+                >
+                  Admin
+                </button>
+              )}
             </nav>
             <div className="app-user">
               <span className="app-user-email" title={user.email}>{user.email}</span>
@@ -247,7 +257,13 @@ export default function App() {
         </div>
       </header>
 
-      {view === 'tools' ? (
+      {view === 'admin' && user.role === 'admin' ? (
+        <div className="layout tools-layout">
+          <main className="content">
+            <AdminView />
+          </main>
+        </div>
+      ) : view === 'tools' ? (
         <div className="layout tools-layout">
           <main className="content">
             <ToolsView />

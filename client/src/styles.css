@@ -344,6 +344,19 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 .car-card-main { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; flex: 1; }
 .car-card-main strong { font-weight: 650; font-size: 0.95rem; }
 .car-nickname { color: var(--muted); font-style: italic; font-size: 0.85rem; }
+.car-low-flag {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--low);
+  background: var(--low-soft);
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-pill);
+}
 .car-card-actions { display: flex; gap: 0.15rem; }
 
 /* Toolbar */

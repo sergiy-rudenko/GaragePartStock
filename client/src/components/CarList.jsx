@@ -1,4 +1,5 @@
 import { assetUrl } from '../api.js';
+import { formatMoney } from '../format.js';
 import SafeImage from './SafeImage.jsx';
 import { useLightbox } from './LightboxProvider.jsx';
 
@@ -26,6 +27,8 @@ export default function CarList({ cars, selectedId, onSelect, onAdd, onEdit, onD
     <ul className="car-list">
       {cars.map((car) => {
         const label = `${car.year} ${car.make} ${car.model}`;
+        const partCount = car.part_count ?? 0;
+        const lowCount = car.low_stock_count ?? 0;
         return (
           <li
             key={car.id}
@@ -49,9 +52,13 @@ export default function CarList({ cars, selectedId, onSelect, onAdd, onEdit, onD
               <strong>{label}</strong>
               {car.nickname && <span className="car-nickname">“{car.nickname}”</span>}
               <span className="muted small">
-                {car.part_count ?? 0} part{(car.part_count ?? 0) === 1 ? '' : 's'}
-                {car.vin ? ` · VIN ${car.vin}` : ''}
+                {partCount} part{partCount === 1 ? '' : 's'} · {formatMoney(car.total_value)}
               </span>
+              {lowCount > 0 && (
+                <span className="car-low-flag" title={`${lowCount} part${lowCount === 1 ? '' : 's'} low on stock`}>
+                  ⚠ {lowCount} low
+                </span>
+              )}
             </div>
             <div className="car-card-actions" onClick={(e) => e.stopPropagation()}>
               <button className="icon-btn" title="Edit car" aria-label={`Edit ${label}`} onClick={() => onEdit(car)}>✎</button>

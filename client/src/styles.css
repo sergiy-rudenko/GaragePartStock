@@ -382,7 +382,15 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   background: var(--surface-alt);
   position: sticky;
   top: 0;
+  z-index: 1;
 }
+
+/* Compact density: tighter rows and smaller thumbnails */
+.parts-table.density-compact { font-size: 0.84rem; }
+.parts-table.density-compact th,
+.parts-table.density-compact td { padding: 0.35rem 0.6rem; }
+.parts-table.density-compact .thumb { width: 30px; height: 30px; }
+.parts-table.density-compact .qty-btn { width: 1.35rem; height: 1.35rem; font-size: 0.95rem; }
 .parts-table tbody tr:last-child td { border-bottom: none; }
 .parts-table th.sortable { cursor: pointer; user-select: none; }
 .parts-table th.sortable:hover { color: var(--text); }

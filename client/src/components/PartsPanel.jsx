@@ -9,6 +9,7 @@ import { PartsTableSkeleton } from './Skeleton.jsx';
 import { useToast } from './ToastProvider.jsx';
 import { useConfirm } from './ConfirmProvider.jsx';
 import { LOW_STOCK_THRESHOLD } from '../constants.js';
+import { getPref, setPref } from '../prefs.js';
 
 export default function PartsPanel({ car, onChanged }) {
   const toast = useToast();
@@ -19,8 +20,10 @@ export default function PartsPanel({ car, onChanged }) {
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [sort, setSort] = useState('name');
-  const [order, setOrder] = useState('asc');
+  // Sort, order and density persist across car switches via the in-memory prefs store.
+  const [sort, setSort] = useState(() => getPref('sort'));
+  const [order, setOrder] = useState(() => getPref('order'));
+  const [density, setDensity] = useState(() => getPref('density'));
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -64,13 +67,25 @@ export default function PartsPanel({ car, onChanged }) {
   const lowStockCount = parts.filter((p) => p.quantity <= LOW_STOCK_THRESHOLD).length;
   const isFiltered = Boolean(search || category);
 
+  function applySort(nextSort, nextOrder) {
+    setSort(nextSort);
+    setOrder(nextOrder);
+    setPref('sort', nextSort);
+    setPref('order', nextOrder);
+  }
+
   function handleSort(key) {
     if (sort === key) {
-      setOrder(order === 'asc' ? 'desc' : 'asc');
+      applySort(key, order === 'asc' ? 'desc' : 'asc');
     } else {
-      setSort(key);
-      setOrder('asc');
+      applySort(key, 'asc');
     }
+  }
+
+  function toggleDensity() {
+    const next = density === 'compact' ? 'comfortable' : 'compact';
+    setDensity(next);
+    setPref('density', next);
   }
 
   async function handleSubmit(data) {
@@ -164,7 +179,7 @@ export default function PartsPanel({ car, onChanged }) {
         </select>
         <select value={`${sort}:${order}`} onChange={(e) => {
           const [s, o] = e.target.value.split(':');
-          setSort(s); setOrder(o);
+          applySort(s, o);
         }}>
           <option value="name:asc">Name (A–Z)</option>
           <option value="name:desc">Name (Z–A)</option>
@@ -173,6 +188,14 @@ export default function PartsPanel({ car, onChanged }) {
           <option value="price:asc">Price (low→high)</option>
           <option value="price:desc">Price (high→low)</option>
         </select>
+        <button
+          className="btn btn-secondary"
+          onClick={toggleDensity}
+          aria-pressed={density === 'compact'}
+          title={`Switch to ${density === 'compact' ? 'comfortable' : 'compact'} rows`}
+        >
+          {density === 'compact' ? '≣ Comfortable' : '≡ Compact'}
+        </button>
       </div>
 
       {error && <div className="form-error">{error}</div>}
@@ -201,6 +224,7 @@ export default function PartsPanel({ car, onChanged }) {
           parts={parts}
           sort={sort}
           order={order}
+          density={density}
           onSort={handleSort}
           onView={setViewing}
           onEdit={(p) => { setEditing(p); setShowForm(true); }}

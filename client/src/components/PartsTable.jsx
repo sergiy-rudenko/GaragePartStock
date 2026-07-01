@@ -22,13 +22,13 @@ function formatPrice(value) {
   return `$${Number(value).toFixed(2)}`;
 }
 
-export default function PartsTable({ parts, sort, order, onSort, onView, onEdit, onDelete, onAdjustQuantity }) {
+export default function PartsTable({ parts, sort, order, density = 'comfortable', onSort, onView, onEdit, onDelete, onAdjustQuantity }) {
   const openLightbox = useLightbox();
   const arrow = (key) => (sort === key ? (order === 'asc' ? ' ▲' : ' ▼') : '');
 
   return (
     <div className="table-wrap">
-      <table className="parts-table">
+      <table className={`parts-table density-${density}`}>
         <thead>
           <tr>
             {COLUMNS.map((col) => {
@@ -50,7 +50,7 @@ export default function PartsTable({ parts, sort, order, onSort, onView, onEdit,
           {parts.map((part) => {
             const low = part.quantity <= LOW_STOCK_THRESHOLD;
             return (
-              <tr key={part.id} className="clickable-row" onClick={() => onView(part)}>
+              <tr key={part.id} className={`clickable-row${low ? ' low-row' : ''}`} onClick={() => onView(part)}>
                 <td className="thumb-cell" data-label="">
                   <SafeImage
                     src={assetUrl(part.photo_url)}

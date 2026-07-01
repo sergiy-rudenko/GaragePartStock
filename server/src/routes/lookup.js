@@ -69,9 +69,11 @@ router.get('/:barcode', wrap(async (req, res) => {
   const barcode = String(req.params.barcode || '').trim();
   if (!barcode) return res.status(400).json({ error: 'barcode is required' });
 
+  // Local duplicate check is scoped to the current user — a barcode used by
+  // another user's part must not leak here.
   const local = await query(
-    'SELECT * FROM parts WHERE barcode = $1 ORDER BY id LIMIT 1',
-    [barcode]
+    'SELECT * FROM parts WHERE barcode = $1 AND user_id = $2 ORDER BY id LIMIT 1',
+    [barcode, req.user.id]
   );
   if (local.rows.length > 0) {
     return res.json({ match: 'local', part: local.rows[0] });

@@ -2,20 +2,26 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { validateCar, toIntOrNull, ValidationError } from '../validation.js';
 import { localizePhotoUrl } from '../uploads.js';
+import { LOW_STOCK_THRESHOLD } from '../constants.js';
 
 const router = Router();
 
 // Wrap async handlers so thrown errors reach the error middleware.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// GET /api/cars — list all cars with part counts
+// GET /api/cars — list all cars with part counts, total inventory value, and
+// how many of their parts are low on stock.
 router.get('/', wrap(async (_req, res) => {
   const { rows } = await query(
-    `SELECT c.*, COUNT(p.id)::int AS part_count
+    `SELECT c.*,
+            COUNT(p.id)::int AS part_count,
+            COALESCE(SUM(p.quantity * COALESCE(p.unit_price, 0)), 0)::float8 AS total_value,
+            COUNT(p.id) FILTER (WHERE p.quantity <= $1)::int AS low_stock_count
        FROM cars c
        LEFT JOIN parts p ON p.car_id = c.id
       GROUP BY c.id
-      ORDER BY c.created_at DESC`
+      ORDER BY c.created_at DESC`,
+    [LOW_STOCK_THRESHOLD]
   );
   res.json(rows);
 }));

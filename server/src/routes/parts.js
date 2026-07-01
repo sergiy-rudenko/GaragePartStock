@@ -1,7 +1,9 @@
 import { Router } from 'express';
-import { query } from '../db.js';
+import { pool, query } from '../db.js';
 import { validatePart, toIntOrNull, ValidationError } from '../validation.js';
 import { upload, localizePhotoUrl } from '../uploads.js';
+import { LOW_STOCK_THRESHOLD } from '../constants.js';
+import { toCsv, formatDate } from '../csv.js';
 
 const router = Router();
 
@@ -77,6 +79,136 @@ router.get('/search', wrap(async (req, res) => {
     [`%${q}%`]
   );
   res.json(rows);
+}));
+
+// GET /api/parts/low-stock — every part across all cars at/below the low-stock
+// threshold, with its owning car. Defined before "/:id".
+router.get('/low-stock', wrap(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT p.*,
+            c.make AS car_make, c.model AS car_model,
+            c.year AS car_year, c.nickname AS car_nickname
+       FROM parts p
+       JOIN cars c ON c.id = p.car_id
+      WHERE p.quantity <= $1
+      ORDER BY p.quantity ASC, p.name ASC`,
+    [LOW_STOCK_THRESHOLD]
+  );
+  res.json(rows);
+}));
+
+// GET /api/parts/categories — distinct, non-empty categories for suggestions.
+router.get('/categories', wrap(async (_req, res) => {
+  const { rows } = await query(
+    `SELECT DISTINCT category FROM parts
+      WHERE category IS NOT NULL AND category <> ''
+      ORDER BY category ASC`
+  );
+  res.json(rows.map((r) => r.category));
+}));
+
+// Columns shared by the CSV export and (as accepted headers) the CSV import.
+const CSV_PART_COLUMNS = [
+  { key: 'name' },
+  { key: 'part_number' },
+  { key: 'category' },
+  { key: 'brand' },
+  { key: 'quantity' },
+  { key: 'unit_price' },
+  { key: 'storage_location' },
+  { key: 'condition' },
+  { key: 'purchase_date', format: formatDate },
+  { key: 'barcode' },
+  { key: 'notes' },
+];
+
+// GET /api/parts/export?car_id=  — CSV of one car's parts, or all parts when no
+// car_id is given (all-parts export prefixes the owning car's details).
+router.get('/export', wrap(async (req, res) => {
+  const hasCar = req.query.car_id !== undefined && req.query.car_id !== '';
+  let rows;
+  let columns;
+  let filename;
+
+  if (hasCar) {
+    const carId = toIntOrNull(req.query.car_id, 'car_id');
+    ({ rows } = await query('SELECT * FROM parts WHERE car_id = $1 ORDER BY name ASC', [carId]));
+    columns = CSV_PART_COLUMNS;
+    filename = `car-${carId}-parts.csv`;
+  } else {
+    ({ rows } = await query(
+      `SELECT p.*, c.year AS car_year, c.make AS car_make,
+              c.model AS car_model, c.nickname AS car_nickname
+         FROM parts p
+         JOIN cars c ON c.id = p.car_id
+        ORDER BY c.year ASC, c.make ASC, p.name ASC`
+    ));
+    columns = [
+      { key: 'car_year', label: 'car_year' },
+      { key: 'car_make', label: 'car_make' },
+      { key: 'car_model', label: 'car_model' },
+      { key: 'car_nickname', label: 'car_nickname' },
+      ...CSV_PART_COLUMNS,
+    ];
+    filename = 'all-parts.csv';
+  }
+
+  const csv = toCsv(rows, columns);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csv);
+}));
+
+// POST /api/parts/import — bulk-add parts to a car from pre-parsed rows.
+// Body: { car_id, parts: [ { name, quantity, ... }, ... ] }.
+// All rows are validated first; if any is invalid nothing is inserted and the
+// per-row errors are returned. Otherwise all rows are inserted in one transaction.
+router.post('/import', wrap(async (req, res) => {
+  const carId = toIntOrNull(req.body.car_id, 'car_id');
+  if (carId === null) throw new ValidationError('car_id is required');
+
+  const car = await query('SELECT 1 FROM cars WHERE id = $1', [carId]);
+  if (car.rowCount === 0) throw new ValidationError('car_id does not reference an existing car');
+
+  const items = Array.isArray(req.body.parts) ? req.body.parts : null;
+  if (!items || items.length === 0) throw new ValidationError('parts must be a non-empty array');
+  if (items.length > 1000) throw new ValidationError('Too many rows in one import (max 1000)');
+
+  const validated = [];
+  const errors = [];
+  items.forEach((item, i) => {
+    try {
+      validated.push(validatePart({ ...item, car_id: carId }));
+    } catch (err) {
+      errors.push({ row: i + 1, error: err.message });
+    }
+  });
+  if (errors.length) {
+    return res.status(400).json({ error: `${errors.length} row(s) are invalid`, details: errors });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const cols = PART_COLUMNS;
+    const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+    let created = 0;
+    for (const p of validated) {
+      const values = cols.map((c) => p[c] ?? (c === 'quantity' ? 0 : null));
+      await client.query(
+        `INSERT INTO parts (${cols.join(', ')}) VALUES (${placeholders})`,
+        values
+      );
+      created += 1;
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ created });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }));
 
 // GET /api/parts/:id

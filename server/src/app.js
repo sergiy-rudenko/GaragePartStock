@@ -5,6 +5,7 @@ import multer from 'multer';
 import carsRouter from './routes/cars.js';
 import partsRouter from './routes/parts.js';
 import lookupRouter from './routes/lookup.js';
+import statsRouter from './routes/stats.js';
 import { UPLOADS_DIR } from './uploads.js';
 
 export function createApp() {
@@ -27,6 +28,7 @@ export function createApp() {
   app.use('/api/cars', carsRouter);
   app.use('/api/parts', partsRouter);
   app.use('/api/lookup', lookupRouter);
+  app.use('/api/stats', statsRouter);
 
   // 404 for unknown API routes
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));

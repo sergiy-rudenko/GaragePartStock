@@ -10,7 +10,7 @@ const empty = {
   photo_url: '', barcode: '',
 };
 
-export default function PartForm({ initial, carId, onSubmit, onCancel, onExistingPart }) {
+export default function PartForm({ initial, carId, categories = [], onSubmit, onCancel, onExistingPart }) {
   const isEdit = Boolean(initial);
   const [form, setForm] = useState({ ...empty, ...sanitize(initial) });
   const [error, setError] = useState(null);
@@ -156,7 +156,17 @@ export default function PartForm({ initial, carId, onSubmit, onCancel, onExistin
         </label>
         <label>
           Category
-          <input name="category" value={form.category} onChange={change} />
+          <input
+            name="category"
+            value={form.category}
+            onChange={change}
+            list="category-suggestions"
+            autoComplete="off"
+            placeholder="Start typing…"
+          />
+          <datalist id="category-suggestions">
+            {categories.map((c) => <option key={c} value={c} />)}
+          </datalist>
         </label>
         <label>
           Brand

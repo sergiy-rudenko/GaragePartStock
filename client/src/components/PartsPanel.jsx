@@ -31,6 +31,12 @@ export default function PartsPanel({ car, onChanged }) {
   const [viewing, setViewing] = useState(null);
   const [scanSearch, setScanSearch] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [categorySuggestions, setCategorySuggestions] = useState([]);
+
+  function loadCategories() {
+    partsApi.categories().then(setCategorySuggestions).catch(() => {});
+  }
+  useEffect(loadCategories, []);
 
   async function load() {
     setLoading(true);
@@ -101,6 +107,7 @@ export default function PartsPanel({ car, onChanged }) {
     setShowForm(false);
     setEditing(null);
     load();
+    loadCategories();
     onChanged?.();
     toast.success(wasEditing ? 'Part updated' : 'Part added');
   }
@@ -256,6 +263,7 @@ export default function PartsPanel({ car, onChanged }) {
           <PartForm
             initial={editing}
             carId={car.id}
+            categories={categorySuggestions}
             onSubmit={handleSubmit}
             onCancel={() => { setShowForm(false); setEditing(null); }}
             onExistingPart={handleExistingPart}
@@ -282,7 +290,7 @@ export default function PartsPanel({ car, onChanged }) {
             carLabel={`${car.year} ${car.make} ${car.model}`}
             templateUrl={partsExportUrl(car.id)}
             onClose={() => setShowImport(false)}
-            onImported={() => { load(); onChanged?.(); }}
+            onImported={() => { load(); loadCategories(); onChanged?.(); }}
           />
         </Modal>
       )}

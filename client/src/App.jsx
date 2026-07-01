@@ -176,7 +176,9 @@ export default function App() {
       <header className="app-header">
         <div className="app-header-inner">
           <div className="brand">
-            <span className="brand-mark" aria-hidden>🚗</span>
+            <span className="brand-mark">
+              <img className="brand-logo" src="/logo.png" alt="Car Parts Inventory logo" width="40" height="40" />
+            </span>
             <div className="brand-text">
               <h1>Car Parts Inventory</h1>
               <p className="brand-tagline">Track parts, stock and barcodes across your garage</p>

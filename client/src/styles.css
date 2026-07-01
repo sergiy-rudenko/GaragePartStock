@@ -53,9 +53,9 @@ body {
 
 h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 
-/* Header */
+/* Header — brand forest-green gradient sampled from the logo */
 .app-header {
-  background: linear-gradient(100deg, #4338ca 0%, #4f46e5 55%, #6366f1 100%);
+  background: linear-gradient(100deg, #0f3d2b 0%, #184a34 55%, #256b47 100%);
   color: #fff;
   box-shadow: var(--shadow-md);
   position: sticky;
@@ -72,18 +72,24 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   gap: var(--sp-4);
 }
 .brand { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+/* White chip seats the logo (which has its own white backdrop) crisply on the
+   green header. */
 .brand-mark {
   flex: 0 0 auto;
-  width: 2.4rem;
-  height: 2.4rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  line-height: 1;
-  background: rgba(255, 255, 255, 0.16);
+  padding: 3px;
+  background: #fff;
   border-radius: var(--radius-sm);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-sm);
+}
+.brand-logo {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
 }
 .brand-text { min-width: 0; }
 .app-header h1 {

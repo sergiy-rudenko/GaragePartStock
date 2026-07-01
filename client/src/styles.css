@@ -53,6 +53,11 @@
   --sp-4: 1rem;
   --sp-5: 1.5rem;
   --sp-6: 2rem;
+
+  /* Max content width — tighter than before so large screens feel balanced
+     rather than sparse. Header, dashboard and layout all share it so they line
+     up edge-to-edge. */
+  --app-max: 1240px;
 }
 
 * { box-sizing: border-box; }
@@ -81,7 +86,7 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   z-index: 40;
 }
 .app-header-inner {
-  max-width: 1400px;
+  max-width: var(--app-max);
   margin: 0 auto;
   padding: var(--sp-3) var(--sp-6);
   display: flex;
@@ -93,7 +98,13 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 }
 
 .app-header-right { display: flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
-.app-user { display: flex; align-items: center; gap: var(--sp-2); }
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-left: var(--sp-4);
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
 .app-user-email {
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.85rem;
@@ -163,12 +174,12 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   transition: background 0.15s ease, color 0.15s ease;
   white-space: nowrap;
 }
-.nav-tab:hover { color: #fff; }
-.nav-tab.active { background: #fff; color: var(--text); box-shadow: var(--shadow-sm); }
+.nav-tab:hover:not(.active) { color: #fff; background: rgba(255, 255, 255, 0.10); }
+.nav-tab.active { background: #fff; color: var(--brand-700); box-shadow: var(--shadow-sm); }
 .nav-tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-/* Tools uses the single-column layout */
-.tools-layout { grid-template-columns: 1fr; max-width: 1100px; }
+/* Tools + admin use a single-column layout, a touch narrower for readability */
+.tools-layout { grid-template-columns: 1fr; max-width: 1040px; }
 .brand { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
 /* White chip seats the logo (which has its own white backdrop) crisply on the
    green header. */
@@ -205,7 +216,7 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 
 /* Dashboard stats bar */
 .dashboard {
-  max-width: 1400px;
+  max-width: var(--app-max);
   margin: 0 auto;
   padding: var(--sp-5) var(--sp-5) 0;
 }
@@ -309,10 +320,10 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 /* Layout */
 .layout {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: var(--sp-5);
   padding: var(--sp-5);
-  max-width: 1400px;
+  max-width: var(--app-max);
   margin: 0 auto;
   align-items: start;
 }
@@ -355,10 +366,11 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
   white-space: nowrap;
 }
-.btn:active { transform: translateY(1px); }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(0); }
 /* Anchors styled as buttons (e.g. CSV export links) */
 a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 
@@ -378,8 +390,8 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   color: #fff;
   box-shadow: var(--shadow-sm);
 }
-.btn-primary:hover { background: var(--primary-dark); }
-.btn-primary:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
+.btn-primary:hover { background: var(--primary-dark); box-shadow: var(--shadow-md); }
+.btn-primary:disabled { opacity: 0.55; cursor: default; box-shadow: none; transform: none; }
 .btn-secondary {
   background: var(--surface);
   color: var(--text-soft);
@@ -445,6 +457,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   background: var(--surface);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+.search:hover,
+.toolbar input:hover, .toolbar select:hover,
+.form input:hover, .form select:hover, .form textarea:hover,
+.input-with-btn input:hover { border-color: var(--muted); }
 .search:focus,
 .toolbar input:focus, .toolbar select:focus,
 .form input:focus, .form select:focus, .form textarea:focus,
@@ -951,6 +967,8 @@ img.thumb, .car-thumb img { cursor: zoom-in; }
   .content { min-height: auto; }
   .app-header-inner { padding: var(--sp-3) var(--sp-4); }
   .panel-header { flex-wrap: wrap; }
+  /* When the header wraps, drop the user-area divider so it doesn't float. */
+  .app-user { padding-left: 0; border-left: none; }
 }
 
 /* Phone: reflow the data tables into stacked cards */

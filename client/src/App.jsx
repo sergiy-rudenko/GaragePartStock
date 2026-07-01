@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { carsApi, partsApi, statsApi } from './api.js';
+import { carsApi, partsApi, statsApi, partsExportUrl } from './api.js';
 import CarList from './components/CarList.jsx';
 import PartsPanel from './components/PartsPanel.jsx';
 import Modal from './components/Modal.jsx';
@@ -187,6 +187,13 @@ export default function App() {
 
       <div className="dashboard">
         <StatsBar stats={stats} loading={statsLoading} onShowLowStock={openLowStock} />
+        {(stats?.total_parts ?? 0) > 0 && (
+          <div className="dashboard-actions">
+            <a className="btn btn-secondary" href={partsExportUrl()} download title="Export every part across all cars to CSV">
+              ⬇ Export all parts (CSV)
+            </a>
+          </div>
+        )}
       </div>
 
       <div className="layout">

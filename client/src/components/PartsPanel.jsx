@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { partsApi } from '../api.js';
+import { partsApi, partsExportUrl } from '../api.js';
 import PartsTable from './PartsTable.jsx';
 import Modal from './Modal.jsx';
 import PartForm from './PartForm.jsx';
 import PartDetail from './PartDetail.jsx';
 import BarcodeScanner from './BarcodeScanner.jsx';
+import CsvImport from './CsvImport.jsx';
 import { PartsTableSkeleton } from './Skeleton.jsx';
 import { useToast } from './ToastProvider.jsx';
 import { useConfirm } from './ConfirmProvider.jsx';
@@ -29,6 +30,7 @@ export default function PartsPanel({ car, onChanged }) {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [scanSearch, setScanSearch] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -158,9 +160,22 @@ export default function PartsPanel({ car, onChanged }) {
             )}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
-          + Add Part
-        </button>
+        <div className="panel-actions">
+          <button className="btn btn-secondary" onClick={() => setShowImport(true)} title="Import parts from a CSV file">
+            ⬆ Import
+          </button>
+          <a
+            className="btn btn-secondary"
+            href={partsExportUrl(car.id)}
+            download
+            title="Export this car's parts to CSV"
+          >
+            ⬇ Export
+          </a>
+          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>
+            + Add Part
+          </button>
+        </div>
       </div>
 
       <div className="toolbar">
@@ -257,6 +272,18 @@ export default function PartsPanel({ car, onChanged }) {
               Edit
             </button>
           </div>
+        </Modal>
+      )}
+
+      {showImport && (
+        <Modal title="Import parts from CSV" onClose={() => setShowImport(false)}>
+          <CsvImport
+            carId={car.id}
+            carLabel={`${car.year} ${car.make} ${car.model}`}
+            templateUrl={partsExportUrl(car.id)}
+            onClose={() => setShowImport(false)}
+            onImported={() => { load(); onChanged?.(); }}
+          />
         </Modal>
       )}
 

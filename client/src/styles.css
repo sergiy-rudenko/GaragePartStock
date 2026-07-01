@@ -160,6 +160,23 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 .stat-skeleton { width: 3.5rem; height: 1.15rem; margin-top: 0.25rem; }
 .stat-warn .stat-icon { background: var(--low-soft); }
 .stat-warn .stat-value { color: var(--low); }
+.dashboard-actions { display: flex; justify-content: flex-end; margin-top: var(--sp-3); }
+
+/* Panel header action cluster (Import / Export / Add) */
+.panel-actions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+
+/* CSV import modal */
+.csv-import { display: flex; flex-direction: column; gap: var(--sp-4); }
+.csv-import code {
+  font-size: 0.82em;
+  background: var(--surface-alt);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.csv-import input[type="file"] { font-size: 0.9rem; }
+.import-summary { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.import-preview { max-height: 45vh; overflow-y: auto; }
 
 /* Layout */
 .layout {
@@ -214,6 +231,8 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
   white-space: nowrap;
 }
 .btn:active { transform: translateY(1px); }
+/* Anchors styled as buttons (e.g. CSV export links) */
+a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 
 /* Visible keyboard focus for all interactive controls */
 .btn:focus-visible,

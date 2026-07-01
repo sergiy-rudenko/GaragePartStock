@@ -16,7 +16,17 @@ parts associated with each one, with search, filtering, sorting, and low-stock a
 
 ## Features
 
-- Dashboard listing all cars (with per-car part counts); click a car to view its parts.
+- Dashboard listing all cars (with per-car part counts, **total inventory value**,
+  and a low-stock chip); click a car to view its parts.
+- **Summary stats bar** — total cars, total parts, total inventory value
+  (Σ quantity × unit price), and low-stock count across the whole inventory.
+- **Low-stock view** — one click (on the low-stock stat) lists every part at or
+  below the threshold across all cars, each with a jump-to-car link.
+- **CSV export / import** — export a single car's parts or every part to CSV, and
+  bulk-add parts to a car by uploading a CSV with an in-browser validation preview.
+- **Category suggestions** — the part form suggests existing categories as you type.
+- **Table density toggle** — switch the parts table between comfortable and compact
+  rows; the choice (plus sort/order) persists across car switches for the session.
 - Full CRUD for **cars** and **parts** via modal forms.
 - Parts table with **search** (name / part number), **category filter**, and
   **sorting** by name, quantity, or price.
@@ -123,6 +133,7 @@ curl http://localhost:4000/api/health
 | `DATABASE_URL`            | PostgreSQL connection string (**required**)                  | —                                                |
 | `PORT`                    | Port the Express server listens on                           | `4000`                                           |
 | `CORS_ORIGIN`             | Comma-separated allowed frontend origin(s)                   | `http://localhost:5173`                          |
+| `LOW_STOCK_THRESHOLD`     | Quantity at/below which a part counts as low stock (optional) | `5`                                             |
 | `BARCODE_LOOKUP_PROVIDER` | Provider name shown in the UI ("Auto-filled from …")         | `UPCitemdb`                                       |
 | `BARCODE_LOOKUP_URL`      | Lookup endpoint (UPC passed as `?upc=`)                      | `https://api.upcitemdb.com/prod/trial/lookup`    |
 | `BARCODE_LOOKUP_API_KEY`  | API key; blank uses the free trial (sent as `user_key`)      | _(blank)_                                        |
@@ -180,6 +191,9 @@ Base URL: `http://localhost:4000/api`
 | PUT    | `/cars/:id`  | Update a car                         |
 | DELETE | `/cars/:id`  | Delete a car (**cascades to parts**) |
 
+`GET /cars` augments each car with `part_count`, `total_value`
+(Σ quantity × unit price), and `low_stock_count`.
+
 **Car body:** `make*`, `model*`, `year*`, `vin`, `nickname`, `photo_url` (`*` required).
 A remote `photo_url` (e.g. an image URL) is downloaded into `server/uploads/` at save
 time and replaced with the local path, exactly like parts.
@@ -188,14 +202,36 @@ time and replaced with the local path, exactly like parts.
 
 | Method | Path             | Description                                       |
 | ------ | ---------------- | ------------------------------------------------- |
-| GET    | `/parts`         | List parts for a car (see below)                  |
-| GET    | `/parts/search`  | Cross-car search by name/part #/barcode (`?q=`)   |
-| GET    | `/parts/:id`     | Get one part                                      |
-| POST   | `/parts`         | Create a part                                     |
-| PUT    | `/parts/:id`     | Update a part (partial merge)                     |
-| PATCH  | `/parts/:id`     | Partial update (e.g. inline quantity change)      |
-| DELETE | `/parts/:id`     | Delete a part                                     |
-| POST   | `/parts/upload`  | Upload an image (`multipart/form-data`)           |
+| GET    | `/parts`            | List parts for a car (see below)                  |
+| GET    | `/parts/search`     | Cross-car search by name/part #/barcode (`?q=`)   |
+| GET    | `/parts/low-stock`  | All parts at/below the low-stock threshold        |
+| GET    | `/parts/categories` | Distinct existing categories (for suggestions)    |
+| GET    | `/parts/export`     | CSV export (`?car_id=` for one car, else all)     |
+| POST   | `/parts/import`     | Bulk-add parts to a car from parsed rows          |
+| GET    | `/parts/:id`        | Get one part                                      |
+| POST   | `/parts`            | Create a part                                     |
+| PUT    | `/parts/:id`        | Update a part (partial merge)                     |
+| PATCH  | `/parts/:id`        | Partial update (e.g. inline quantity change)      |
+| DELETE | `/parts/:id`        | Delete a part                                     |
+| POST   | `/parts/upload`     | Upload an image (`multipart/form-data`)           |
+
+`GET /parts/low-stock` returns parts whose `quantity` ≤ the low-stock threshold
+(default `5`), each augmented with `car_make`, `car_model`, `car_year`, and
+`car_nickname`, ordered by quantity ascending.
+
+`GET /parts/export` streams `text/csv` (with a `Content-Disposition` filename).
+With `?car_id=<id>` it exports that car's parts; with no `car_id` it exports every
+part, prefixed with the owning car's `car_year`/`car_make`/`car_model`/`car_nickname`.
+The CSV header names match the importable fields below.
+
+`POST /parts/import` accepts `{ "car_id": <id>, "parts": [ { "name": "...", ... } ] }`.
+Every row is validated first (same rules as `POST /parts`); if any row is invalid
+**nothing** is inserted and the response is `400` with
+`{ "error": "...", "details": [ { "row": <n>, "error": "..." } ] }`. On success all
+rows are inserted in a single transaction and the response is
+`{ "created": <count> }`. Importable fields: `name*`, `part_number`, `category`,
+`brand`, `quantity`, `unit_price`, `storage_location`, `condition`, `purchase_date`,
+`barcode`, `notes` (`*` required; unknown columns are ignored). Max 1000 rows per call.
 
 `GET /parts/search?q=` returns matching parts across all cars, each augmented with
 `car_make`, `car_model`, `car_year`, and `car_nickname`.
@@ -222,6 +258,18 @@ Store that value in the part's `photo_url`. Images are served at
 `quantity` (int ≥ 0), `unit_price` (≥ 0), `storage_location`,
 `condition` (`new` | `used` | `refurbished`), `notes`, `purchase_date` (`YYYY-MM-DD`),
 `photo_url`, `barcode`.
+
+### Stats
+
+| Method | Path      | Description                          |
+| ------ | --------- | ------------------------------------ |
+| GET    | `/stats`  | Inventory-wide summary figures       |
+
+Returns `{ total_cars, total_parts, total_value, low_stock_count, low_stock_threshold }`.
+The low-stock threshold defaults to `5` and can be overridden without touching
+`.env` via the optional `LOW_STOCK_THRESHOLD` environment variable
+(see `server/src/constants.js`); it mirrors the client default in
+`client/src/constants.js`.
 
 ### Barcode lookup
 

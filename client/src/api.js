@@ -2,7 +2,23 @@ import axios from 'axios';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-const client = axios.create({ baseURL });
+// withCredentials so the session cookie is always sent/stored, including when
+// the API is on a different origin (production). In dev, Vite proxies /api so
+// requests are same-origin anyway.
+const client = axios.create({ baseURL, withCredentials: true });
+
+// When any authenticated request comes back 401 (e.g. the session expired), let
+// the app drop back to the login screen. Auth endpoints handle their own 401s.
+client.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const url = err.config?.url || '';
+    if (err.response?.status === 401 && !/\/auth\/(login|signup|me)/.test(url)) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+    return Promise.reject(err);
+  }
+);
 
 // Normalize error messages from the API into thrown Errors.
 function unwrap(promise) {
@@ -11,6 +27,14 @@ function unwrap(promise) {
     throw new Error(message);
   });
 }
+
+export const authApi = {
+  // Current user, or throws (401) when not logged in.
+  me: () => unwrap(client.get('/auth/me')),
+  signup: (email, password) => unwrap(client.post('/auth/signup', { email, password })),
+  login: (email, password) => unwrap(client.post('/auth/login', { email, password })),
+  logout: () => unwrap(client.post('/auth/logout')),
+};
 
 export const carsApi = {
   list: () => unwrap(client.get('/cars')),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { carsApi, partsApi, statsApi, partsExportUrl } from './api.js';
+import { carsApi, partsApi, statsApi, partsExportUrl, authApi } from './api.js';
+import AuthScreen from './components/AuthScreen.jsx';
 import CarList from './components/CarList.jsx';
 import PartsPanel from './components/PartsPanel.jsx';
 import Modal from './components/Modal.jsx';
@@ -17,6 +18,10 @@ import { LOW_STOCK_THRESHOLD } from './constants.js';
 export default function App() {
   const toast = useToast();
   const confirm = useConfirm();
+  // Authenticated user (null = logged out). authChecking gates the initial
+  // session probe so we don't flash the login screen for a logged-in user.
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
   // Top-level view: the existing Cars & Parts experience (default) or Tools.
   const [view, setView] = useState('parts');
   const [cars, setCars] = useState([]);
@@ -103,11 +108,34 @@ export default function App() {
     loadLowStock();
   }
 
+  // Probe the session once on mount; drop to the login screen on 401 (also
+  // triggered later by the axios interceptor if the session expires).
   useEffect(() => {
+    authApi.me().then(setUser).catch(() => setUser(null)).finally(() => setAuthChecking(false));
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
+  }, []);
+
+  // Load data only once authenticated (and reload for a different account).
+  useEffect(() => {
+    if (!user) return;
     loadCars();
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
+
+  async function handleLogout() {
+    try {
+      await authApi.logout();
+    } catch {
+      // ignore — we clear local state regardless
+    }
+    setUser(null);
+    setView('parts');
+    setSelected(null);
+    setCars([]);
+  }
 
   // Debounced cross-car search.
   useEffect(() => {
@@ -174,6 +202,13 @@ export default function App() {
 
   const openAddCar = () => { setEditing(null); setShowForm(true); };
 
+  if (authChecking) {
+    return <div className="auth-loading">Loading…</div>;
+  }
+  if (!user) {
+    return <AuthScreen onAuth={setUser} />;
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -187,22 +222,28 @@ export default function App() {
               <p className="brand-tagline">Track parts, stock and barcodes across your garage</p>
             </div>
           </div>
-          <nav className="app-nav" aria-label="Primary">
-            <button
-              className={`nav-tab${view === 'parts' ? ' active' : ''}`}
-              onClick={() => setView('parts')}
-              aria-current={view === 'parts' ? 'page' : undefined}
-            >
-              Cars &amp; Parts
-            </button>
-            <button
-              className={`nav-tab${view === 'tools' ? ' active' : ''}`}
-              onClick={() => setView('tools')}
-              aria-current={view === 'tools' ? 'page' : undefined}
-            >
-              Tools
-            </button>
-          </nav>
+          <div className="app-header-right">
+            <nav className="app-nav" aria-label="Primary">
+              <button
+                className={`nav-tab${view === 'parts' ? ' active' : ''}`}
+                onClick={() => setView('parts')}
+                aria-current={view === 'parts' ? 'page' : undefined}
+              >
+                Cars &amp; Parts
+              </button>
+              <button
+                className={`nav-tab${view === 'tools' ? ' active' : ''}`}
+                onClick={() => setView('tools')}
+                aria-current={view === 'tools' ? 'page' : undefined}
+              >
+                Tools
+              </button>
+            </nav>
+            <div className="app-user">
+              <span className="app-user-email" title={user.email}>{user.email}</span>
+              <button className="btn btn-logout" onClick={handleLogout}>Log out</button>
+            </div>
+          </div>
         </div>
       </header>
 

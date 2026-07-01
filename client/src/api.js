@@ -59,6 +59,30 @@ export const partsApi = {
     unwrap(client.get('/parts', { params: { barcode } })).then((rows) => rows[0] || null),
 };
 
+export const toolsApi = {
+  list: (params) => unwrap(client.get('/tools', { params })),
+  get: (id) => unwrap(client.get(`/tools/${id}`)),
+  create: (data) => unwrap(client.post('/tools', data)),
+  update: (id, data) => unwrap(client.put(`/tools/${id}`, data)),
+  patch: (id, data) => unwrap(client.patch(`/tools/${id}`, data)),
+  remove: (id) => unwrap(client.delete(`/tools/${id}`)),
+
+  // Search tools by name, brand or barcode.
+  search: (q) => unwrap(client.get('/tools/search', { params: { q } })),
+
+  // Distinct existing tool categories, for type-ahead suggestions.
+  categories: () => unwrap(client.get('/tools/categories')),
+
+  // Upload an image File; returns { photo_url }.
+  uploadPhoto: (file) => {
+    const fd = new FormData();
+    fd.append('photo', file);
+    return unwrap(client.post('/tools/upload', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }));
+  },
+};
+
 export const lookupApi = {
   // Resolve a barcode: local DB match, external provider match, or none.
   byBarcode: (barcode) => unwrap(client.get(`/lookup/${encodeURIComponent(barcode)}`)),

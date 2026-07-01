@@ -1,22 +1,40 @@
 :root {
-  /* Palette — cohesive slate + indigo */
-  --bg: #eef2f6;
+  /* Palette — brand forest-green primary on cool slate neutrals. One accent
+     family throughout so the header, buttons and cards read as one theme. */
+  --bg: #eef2f0;
   --surface: #ffffff;
-  --surface-alt: #f8fafc;
-  --border: #e5e9f0;
-  --border-strong: #d3dae5;
-  --text: #0f172a;
-  --text-soft: #334155;
-  --muted: #64748b;
-  --primary: #4f46e5;
-  --primary-dark: #4338ca;
-  --primary-soft: #eef2ff;
+  --surface-alt: #f5f8f6;
+  --border: #e3e9e5;
+  --border-strong: #cfdad3;
+  --text: #10241b;
+  --text-soft: #33423b;
+  --muted: #667a70;
+
+  /* Brand green scale (sampled from the logo shield) */
+  --brand-900: #0f3d2b;
+  --brand-800: #14402e;
+  --brand-700: #185839;
+  --brand-600: #1f6b47;
+  --brand-500: #256b47;
+
+  --primary: var(--brand-600);
+  --primary-dark: var(--brand-700);
+  --primary-soft: #e7f1ea;
+  --primary-border: #cbe0d4;
+  --primary-ring: rgba(31, 107, 71, 0.20);
+
   --danger: #dc2626;
   --danger-soft: #fef2f2;
-  --low: #ea580c;
-  --low-soft: #fff3e8;
+  --low: #d97706;
+  --low-soft: #fff5e6;
+  --low-border: #f6dfb5;
   --ok: #16a34a;
-  --ok-soft: #e8f7ee;
+  --ok-soft: #e6f5ec;
+
+  /* Secondary accent — used sparingly (e.g. one dashboard stat) so the palette
+     has variety without a second competing theme. */
+  --accent: #2563eb;
+  --accent-soft: #e8eefb;
 
   /* Radii */
   --radius: 12px;
@@ -55,7 +73,7 @@ h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
 
 /* Header — brand forest-green gradient sampled from the logo */
 .app-header {
-  background: linear-gradient(100deg, #0f3d2b 0%, #184a34 55%, #256b47 100%);
+  background: linear-gradient(100deg, var(--brand-900) 0%, var(--brand-700) 55%, var(--brand-500) 100%);
   color: #fff;
   box-shadow: var(--shadow-md);
   position: sticky;
@@ -409,7 +427,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 .input-with-btn input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-soft);
+  box-shadow: 0 0 0 3px var(--primary-ring);
 }
 
 /* Car list */
@@ -502,7 +520,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 .parts-table tbody tr { transition: background 0.12s ease; }
 .parts-table tbody tr:hover { background: var(--primary-soft); }
 .parts-table tbody tr.low-row { background: var(--low-soft); box-shadow: inset 3px 0 0 var(--low); }
-.parts-table tbody tr.low-row:hover { background: #ffe6d1; }
+.parts-table tbody tr.low-row:hover { background: #ffedd0; }
 .clickable-row { cursor: pointer; }
 .row-actions { white-space: nowrap; text-align: right; }
 
@@ -519,7 +537,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   font-variant-numeric: tabular-nums;
 }
 .badge-ok { background: var(--ok-soft); color: #15803d; }
-.badge-low { background: var(--low-soft); color: #c2410c; }
+.badge-low { background: var(--low-soft); color: #b45309; }
 .low-stock-flag { color: var(--low); font-size: 0.75rem; font-weight: 600; margin-left: 0.4rem; }
 .low-stock-summary { color: var(--low); font-weight: 600; }
 
@@ -610,8 +628,8 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
 /* Duplicate / info banner */
 .dup-banner {
   background: var(--primary-soft);
-  border: 1px solid #c7d2fe;
-  color: #3730a3;
+  border: 1px solid var(--primary-border);
+  color: var(--brand-800);
   padding: 0.7rem 0.9rem;
   border-radius: var(--radius-sm);
   font-size: 0.88rem;

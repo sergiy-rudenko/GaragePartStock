@@ -36,6 +36,29 @@ CREATE INDEX IF NOT EXISTS idx_parts_name        ON parts(name);
 CREATE INDEX IF NOT EXISTS idx_parts_part_number ON parts(part_number);
 CREATE INDEX IF NOT EXISTS idx_parts_barcode     ON parts(barcode);
 
+-- Tools inventory — an inventory of tools you own, parallel to parts but not
+-- tied to a specific car.
+CREATE TABLE IF NOT EXISTS tools (
+    id               SERIAL PRIMARY KEY,
+    name             TEXT NOT NULL,
+    brand            TEXT,
+    category         TEXT,
+    quantity         INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+    condition        TEXT CHECK (condition IN ('new', 'used')),
+    storage_location TEXT,
+    purchase_date    DATE,
+    unit_price       NUMERIC(10, 2) CHECK (unit_price >= 0),
+    barcode          TEXT,
+    photo_url        TEXT,
+    notes            TEXT,
+    user_id          INTEGER,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tools_category ON tools(category);
+CREATE INDEX IF NOT EXISTS idx_tools_name     ON tools(name);
+CREATE INDEX IF NOT EXISTS idx_tools_barcode  ON tools(barcode);
+
 -- ---------------------------------------------------------------------------
 -- MIGRATION NOTE
 -- ---------------------------------------------------------------------------
@@ -48,8 +71,17 @@ CREATE INDEX IF NOT EXISTS idx_parts_barcode     ON parts(barcode);
 --   CREATE INDEX IF NOT EXISTS idx_parts_barcode ON parts(barcode);
 --   ALTER TABLE cars  ADD COLUMN IF NOT EXISTS photo_url TEXT;
 --
+-- Forward-compat: a nullable user_id (no FK yet, defaults NULL) is added to
+-- cars, parts and tools so a future multi-user feature won't require reshaping
+-- existing rows. It is intentionally left unused for now.
+--
 -- (These statements are idempotent and safe to run on a fresh database too.)
 -- ---------------------------------------------------------------------------
 ALTER TABLE parts ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE parts ADD COLUMN IF NOT EXISTS barcode   TEXT;
 ALTER TABLE cars  ADD COLUMN IF NOT EXISTS photo_url TEXT;
+
+-- Forward-compat multi-user column (nullable, no FK, unused for now).
+ALTER TABLE cars  ADD COLUMN IF NOT EXISTS user_id INTEGER;
+ALTER TABLE parts ADD COLUMN IF NOT EXISTS user_id INTEGER;
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS user_id INTEGER;

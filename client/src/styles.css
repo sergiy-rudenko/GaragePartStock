@@ -441,35 +441,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   text-transform: uppercase;
   font-size: 0.68rem;
 }
-.global-search .search { flex: 1; }
-
-/* Join the search input and its scan/clear button(s) into one cohesive control:
-   no gap, collapsed shared border, only the outer corners rounded — so they read
-   as a single paired unit instead of two detached pills with the panel
-   background showing between them. */
-.global-search .input-with-btn { gap: 0; }
-.global-search .input-with-btn > input {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.global-search .input-with-btn > .btn {
-  border-radius: 0;
-  margin-left: -1px; /* collapse the doubled 1px border into a single seam */
-}
-.global-search .input-with-btn > .btn:last-child {
-  border-top-right-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
-}
-/* Keep the group flush: don't let the button's hover lift pop it out of line. */
-.global-search .input-with-btn > .btn:hover:not(:disabled),
-.global-search .input-with-btn > .btn:active:not(:disabled) { transform: none; }
-/* Lift the focused/hovered control so its border/ring isn't hidden by a neighbor. */
-.global-search .input-with-btn > input:focus,
-.global-search .input-with-btn > .btn:hover,
-.global-search .input-with-btn > .btn:focus-visible {
-  position: relative;
-  z-index: 1;
-}
+.global-search .search { flex: 1 1 auto; min-width: 0; }
 
 /* Inputs (shared baseline) */
 .search,
@@ -688,11 +660,25 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; justif
   font-size: 0.88rem;
 }
 
+/* Input + scan/clear button(s) as a tight, matched pair: equal height, bottoms
+   flush, with a small consistent gap. */
 .input-with-btn { display: flex; gap: 0.4rem; align-items: stretch; }
-/* Keep the input and its scan/clear button(s) a matched pair: equal height,
-   bottom edges flush, centers aligned. */
-.input-with-btn > .btn { align-self: stretch; }
-.input-with-btn input { flex: 1; }
+/* The input must be allowed to shrink to share the row. A text input has an
+   intrinsic min-width (~20ch); without min-width:0 it refuses to shrink and
+   pushes the button past the container's right edge (the overflow that made the
+   button look detached). */
+.input-with-btn input,
+.input-with-btn .search {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* The button keeps its natural width and never grows/shrinks. */
+.input-with-btn > .btn {
+  flex: 0 0 auto;
+  align-self: stretch;
+  box-sizing: border-box;
+}
 
 .lookup-ok { color: var(--ok); font-weight: 600; }
 

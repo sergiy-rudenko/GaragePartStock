@@ -101,7 +101,42 @@ ALTER TABLE parts ADD COLUMN IF NOT EXISTS photo_url TEXT;
 ALTER TABLE parts ADD COLUMN IF NOT EXISTS barcode   TEXT;
 ALTER TABLE cars  ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
--- Forward-compat multi-user column (nullable, no FK, unused for now).
+-- Multi-user ownership column.
 ALTER TABLE cars  ADD COLUMN IF NOT EXISTS user_id INTEGER;
 ALTER TABLE parts ADD COLUMN IF NOT EXISTS user_id INTEGER;
 ALTER TABLE tools ADD COLUMN IF NOT EXISTS user_id INTEGER;
+
+-- ---------------------------------------------------------------------------
+-- Ownership lock-down (Stage 4)
+-- ---------------------------------------------------------------------------
+-- Add foreign keys to users(id). Idempotent (guarded by pg_constraint). A
+-- nullable FK column still permits existing NULLs until they are claimed.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cars_user_id_fkey') THEN
+    ALTER TABLE cars  ADD CONSTRAINT cars_user_id_fkey  FOREIGN KEY (user_id) REFERENCES users(id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'parts_user_id_fkey') THEN
+    ALTER TABLE parts ADD CONSTRAINT parts_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tools_user_id_fkey') THEN
+    ALTER TABLE tools ADD CONSTRAINT tools_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+  END IF;
+END $$;
+
+-- Enforce NOT NULL, but ONLY once there are no unclaimed (NULL) rows — so
+-- re-running this on a database that still holds pre-auth data does not fail
+-- before `node scripts/claim-data.mjs` has assigned ownership. SET NOT NULL is
+-- a no-op when already set, so this whole block is idempotent.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cars  WHERE user_id IS NULL) THEN
+    ALTER TABLE cars  ALTER COLUMN user_id SET NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM parts WHERE user_id IS NULL) THEN
+    ALTER TABLE parts ALTER COLUMN user_id SET NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM tools WHERE user_id IS NULL) THEN
+    ALTER TABLE tools ALTER COLUMN user_id SET NOT NULL;
+  END IF;
+END $$;
